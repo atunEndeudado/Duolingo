@@ -56,6 +56,7 @@ CREATE TABLE preguntas (
     id              SERIAL PRIMARY KEY,
     nivel           VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
     pregunta        VARCHAR(200) NOT NULL,
+    respuesta       VARCHAR(200) NOT NULL,
 );
 
 CREATE TABLE Vocabulario (
