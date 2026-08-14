@@ -13,6 +13,15 @@ export class CursoController {
     }
   }
 
+  async remove(req: Request, res: Response, next: NextFunction) {
+    try {
+      await cursoService.remove(req.params.id)
+      res.status(204).send()
+    } catch (error) {
+      next(error)
+    }
+  }
+
   async createLesson(req: Request, res: Response, next: NextFunction) {
     try {
       const leccion = await cursoService.createLesson(req.params.id, req.body)

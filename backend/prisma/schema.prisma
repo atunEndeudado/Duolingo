@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum NivelCurso {
+enum Nivel {
   A1
   A2
   B1
@@ -15,124 +15,196 @@ enum NivelCurso {
   C1
 }
 
-model Usuario {
-  id                    String   @id @default(cuid())
-  email                 String   @unique
-  nombre                String
-  xpTotal               Int      @default(0) @map("xp_total")
-  rachaDias             Int      @default(0) @map("racha_dias")
-  fechaUltimaActividad  DateTime? @map("fecha_ultima_actividad")
-  fechaCreacion         DateTime @default(now()) @map("fecha_creacion")
-  fechaActualizacion    DateTime @updatedAt @map("fecha_actualizacion")
+enum RolUsuario {
+  alumno
+  admin
+}
 
-  cursos                UsuarioCurso[]
-  progresos             Progreso[]
-  usuarioInsignias      UsuarioInsignia[]
-  amistades             Amistad[] @relation("UsuarioAmistades")
-  amistadesRecibidas    Amistad[] @relation("UsuarioAmistadesRecibidas")
+enum TipoPregunta {
+  multiple_choice
+  completar
+  traducir
+}
+
+enum EstadoSolicitud {
+  pendiente
+  aceptada
+  rechazada
+}
+
+model Usuario {
+  id                   String   @id @default(cuid())
+  nombre_usuario       String   @unique
+  email                String   @unique
+  nombre               String
+  password_hash        String
+  xp_total             Int      @default(0)
+  racha_dias           Int      @default(0)
+  fecha_ultima_actividad DateTime? @db.Date
+  rol                  RolUsuario @default(alumno)
+  es_premium           Boolean  @default(false)
+  fecha_creacion       DateTime @default(now())
+  fecha_actualizacion  DateTime @updatedAt
+
+  cursos                  UsuarioCurso[]
+  progresos               Progreso[]
+  respuestas              RespuestaUsuario[]
+  insignias               UsuarioInsignia[]
+  solicitudesEnviadas     SolicitudAmistad[] @relation("SolicitudesEnviadas")
+  solicitudesRecibidas    SolicitudAmistad[] @relation("SolicitudesRecibidas")
+  amigosComoA             Amigo[] @relation("AmigoUsuarioA")
+  amigosComoB             Amigo[] @relation("AmigoUsuarioB")
 
   @@map("usuarios")
 }
 
 model Idioma {
-  id          String   @id @default(cuid())
-  nombre      String   @unique
-  codigo      String   @unique
-  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  id            String   @id @default(cuid())
+  nombre        String   @unique
+  codigo        String   @unique
+  emoji         String
+  fecha_creacion DateTime @default(now())
 
-  cursos      Curso[]
+  cursos        Curso[]
 
   @@map("idiomas")
 }
 
 model Curso {
-  id          String   @id @default(cuid())
-  idiomaId    String   @map("idioma_id")
-  nivel       NivelCurso
-  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  id            String   @id @default(cuid())
+  idioma_id     String
+  nivel         Nivel
+  fecha_creacion DateTime @default(now())
 
-  idioma      Idioma   @relation(fields: [idiomaId], references: [id])
-  lecciones   Leccion[]
-  usuarios    UsuarioCurso[]
+  idioma        Idioma   @relation(fields: [idioma_id], references: [id], onDelete: Cascade)
+  lecciones     Leccion[]
+  inscripciones UsuarioCurso[]
 
   @@map("cursos")
 }
 
 model Leccion {
-  id              String   @id @default(cuid())
-  cursoId         String   @map("curso_id")
-  orden           Int
-  titulo          String
-  xpRecompensa    Int      @map("xp_recompensa")
-  fechaCreacion   DateTime @default(now()) @map("fecha_creacion")
+  id             String   @id @default(cuid())
+  curso_id       String
+  orden          Int
+  titulo         String
+  xp_recompensa  Int
+  fecha_creacion DateTime @default(now())
 
-  curso           Curso    @relation(fields: [cursoId], references: [id])
-  progresos       Progreso[]
+  curso          Curso    @relation(fields: [curso_id], references: [id], onDelete: Cascade)
+  preguntas      Pregunta[]
+  progresos      Progreso[]
 
-  @@unique([cursoId, orden])
+  @@unique([curso_id, orden])
   @@map("lecciones")
 }
 
+model Pregunta {
+  id                  String   @id @default(cuid())
+  leccion_id          String
+  orden               Int
+  enunciado           String
+  tipo                TipoPregunta
+  opciones            String[] @default([])
+  respuesta_correcta  String
+  es_premium          Boolean  @default(false)
+  fecha_creacion      DateTime @default(now())
+
+  leccion             Leccion @relation(fields: [leccion_id], references: [id], onDelete: Cascade)
+  respuestas          RespuestaUsuario[]
+
+  @@unique([leccion_id, orden])
+  @@map("preguntas")
+}
+
 model Progreso {
-  id               String   @id @default(cuid())
-  usuarioId         String   @map("usuario_id")
-  leccionId        String   @map("leccion_id")
-  puntaje          Int      @default(0)
-  completada       Boolean  @default(false)
-  fecha            DateTime @default(now())
-  fechaCompletada  DateTime? @map("fecha_completada")
+  id         String   @id @default(cuid())
+  usuario_id String
+  leccion_id String
+  puntaje    Int      @default(0)
+  completada Boolean  @default(false)
+  fecha      DateTime @default(now())
 
-  usuario          Usuario  @relation(fields: [usuarioId], references: [id])
-  leccion          Leccion @relation(fields: [leccionId], references: [id])
+  usuario    Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  leccion    Leccion  @relation(fields: [leccion_id], references: [id], onDelete: Cascade)
 
-  @@unique([usuarioId, leccionId])
   @@map("progresos")
 }
 
 model Insignia {
-  id          String   @id @default(cuid())
-  nombre      String   @unique
-  descripcion String
-  criterio    String
-  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  id            String   @id @default(cuid())
+  nombre        String   @unique
+  descripcion   String
+  criterio      String
+  emoji         String
+  color         String
+  fecha_creacion DateTime @default(now())
 
-  usuarios    UsuarioInsignia[]
+  usuarios      UsuarioInsignia[]
 
   @@map("insignias")
 }
 
+model SolicitudAmistad {
+  id                     String          @id @default(cuid())
+  usuario_solicitante_id String
+  usuario_receptor_id    String
+  estado                EstadoSolicitud @default(pendiente)
+  fecha                 DateTime        @default(now())
+
+  solicitante           Usuario         @relation("SolicitudesEnviadas", fields: [usuario_solicitante_id], references: [id], onDelete: Cascade)
+  receptor              Usuario         @relation("SolicitudesRecibidas", fields: [usuario_receptor_id], references: [id], onDelete: Cascade)
+
+  @@unique([usuario_solicitante_id, usuario_receptor_id])
+  @@map("solicitudes_amistad")
+}
+
 model UsuarioCurso {
-  usuarioId       String   @map("usuario_id")
-  cursoId         String   @map("curso_id")
-  fechaInscripcion DateTime @default(now()) @map("fecha_inscripcion")
+  usuario_id        String
+  curso_id          String
+  fecha_inscripcion DateTime @default(now())
 
-  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  curso           Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  usuario           Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  curso             Curso    @relation(fields: [curso_id], references: [id], onDelete: Cascade)
 
-  @@id([usuarioId, cursoId])
+  @@id([usuario_id, curso_id])
   @@map("usuario_cursos")
 }
 
 model UsuarioInsignia {
-  usuarioId    String   @map("usuario_id")
-  insigniaId   String   @map("insignia_id")
-  fecha        DateTime @default(now())
+  usuario_id  String
+  insignia_id String
+  fecha       DateTime @default(now())
 
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  insignia     Insignia @relation(fields: [insigniaId], references: [id], onDelete: Cascade)
+  usuario     Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  insignia    Insignia @relation(fields: [insignia_id], references: [id], onDelete: Cascade)
 
-  @@id([usuarioId, insigniaId])
+  @@id([usuario_id, insignia_id])
   @@map("usuario_insignias")
 }
 
-model Amistad {
-  usuarioAId   String   @map("usuario_a_id")
-  usuarioBId   String   @map("usuario_b_id")
-  fecha        DateTime @default(now())
+model Amigo {
+  usuario_a_id String
+  usuario_b_id String
+  fecha       DateTime @default(now())
 
-  usuarioA     Usuario  @relation("UsuarioAmistades", fields: [usuarioAId], references: [id], onDelete: Cascade)
-  usuarioB     Usuario  @relation("UsuarioAmistadesRecibidas", fields: [usuarioBId], references: [id], onDelete: Cascade)
+  usuarioA     Usuario @relation("AmigoUsuarioA", fields: [usuario_a_id], references: [id], onDelete: Cascade)
+  usuarioB     Usuario @relation("AmigoUsuarioB", fields: [usuario_b_id], references: [id], onDelete: Cascade)
 
-  @@id([usuarioAId, usuarioBId])
-  @@map("amistades")
+  @@unique([usuario_a_id, usuario_b_id])
+  @@map("amigos")
+}
+
+model RespuestaUsuario {
+  id              String   @id @default(cuid())
+  usuario_id      String
+  pregunta_id     String
+  respuesta_dada  String
+  es_correcta     Boolean
+  fecha           DateTime @default(now())
+
+  usuario         Usuario  @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  pregunta        Pregunta @relation(fields: [pregunta_id], references: [id], onDelete: Cascade)
+
+  @@map("respuestas_usuario")
 }

@@ -4,15 +4,6 @@ import { UsuarioService } from '../services/usuario.service.js'
 const usuarioService = new UsuarioService()
 
 export class UsuarioController {
-  async create(req: Request, res: Response, next: NextFunction) {
-    try {
-      const usuario = await usuarioService.create(req.body)
-      res.status(201).json(usuario)
-    } catch (error) {
-      next(error)
-    }
-  }
-
   async enrollCourse(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await usuarioService.enrollCourse(req.params.id, req.body)
@@ -24,8 +15,8 @@ export class UsuarioController {
 
   async completeLesson(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await usuarioService.completeLesson(req.params.id, req.params.leccionId, req.body)
-      res.json(result)
+      const result = await usuarioService.completeLesson(req.params.id, req.params.leccionId)
+      res.status(200).json(result)
     } catch (error) {
       next(error)
     }
@@ -40,10 +31,28 @@ export class UsuarioController {
     }
   }
 
-  async createFriendship(req: Request, res: Response, next: NextFunction) {
+  async createFriendRequest(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await usuarioService.createFriendship(req.params.id, req.body)
+      const result = await usuarioService.createFriendRequest(req.params.id, req.body)
       res.status(201).json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getFriendRequests(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await usuarioService.getFriendRequests(req.params.id)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async respondFriendRequest(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await usuarioService.respondFriendRequest(req.params.id, req.params.solicitudId, req.body)
+      res.json(result)
     } catch (error) {
       next(error)
     }
@@ -79,6 +88,24 @@ export class UsuarioController {
   async getActivity(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await usuarioService.getActivity(req.params.id, req.query)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async activatePremium(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await usuarioService.activatePremium(req.params.id)
+      res.json(result)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async cancelPremium(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await usuarioService.cancelPremium(req.params.id)
       res.json(result)
     } catch (error) {
       next(error)
