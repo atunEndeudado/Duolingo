@@ -29,8 +29,6 @@ CREATE TABLE vocabulario (
 
 CREATE INDEX idx_vocabulario_nivel ON vocabulario(nivel);
 
-
-
 -- ============================================================
 -- TABLA: idioma
 -- ============================================================
