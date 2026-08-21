@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from src.middlewares.error_middleware import app_error_handler
 from src.routers import auth_router, user_router, pasajero_router, conductores_router
 from src.utils.errors import AppError
-
+ 
 app = FastAPI(title="Initial Structure API")
 
 app.add_exception_handler(AppError, app_error_handler)

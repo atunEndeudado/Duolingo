@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models.user_model import User
 
-
+ 
 class UserRepository:
     def __init__(self, db: Session):
         self.db = db

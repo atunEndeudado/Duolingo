@@ -8,7 +8,7 @@ from src.services.user_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-
+ 
 @router.post("/", response_model=UserResponseDTO, status_code=status.HTTP_201_CREATED)
 def create_user(payload: CreateUserSchema, db: Session = Depends(get_db)):
     """Ejemplo completo: valida con Schema, arma DTO, llama al service."""

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from src.db.models.pasajero_model import Pasajero
 
-
+ 
 class PasajeroRepository:
     def __init__(self, db: Session):
         self.db = db

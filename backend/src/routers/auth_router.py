@@ -14,3 +14,4 @@ def login(payload: LoginSchema, db: Session = Depends(get_db)):
     dto = LoginDTO(**payload.model_dump())
     token: TokenDTO = AuthService(db).login(dto)
     return TokenSchema(**token.model_dump())
+ 

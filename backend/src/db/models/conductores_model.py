@@ -11,4 +11,4 @@ class Conductores(Base):
     nombre = Column(String, nullable=False)
     licencia = Column(String, unique=True, nullable=False)
     calificacion_promedio = Column(Float, nullable=False)
-
+ 

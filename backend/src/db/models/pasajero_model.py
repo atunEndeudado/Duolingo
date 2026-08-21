@@ -11,3 +11,4 @@ class Pasajero(Base):
     email = Column(String, unique=True, nullable=False)
     telefono = Column(String, nullable=False)
 
+ 

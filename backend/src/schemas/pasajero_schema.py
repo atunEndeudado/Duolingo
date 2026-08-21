@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 
-
+ 
 class CreatePasajeroSchema(BaseModel):
     nombre: str = Field(min_length=2)
     email: EmailStr

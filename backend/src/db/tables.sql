@@ -26,7 +26,7 @@ CREATE TABLE vocabulario (
     palabra VARCHAR(100) NOT NULL,
     nivel   VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2'))
 );
-
+ 
 CREATE INDEX idx_vocabulario_nivel ON vocabulario(nivel);
 
 -- ============================================================

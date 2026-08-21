@@ -5,7 +5,7 @@ class CreatePasajeroDTO(BaseModel): # POST
     nombre: str
     email: str
     telefono: str
-
+ 
 class UpdatePasajeroDTO(BaseModel): # PUT/PATCH
     nombre: str | None = None
     email: str | None = None

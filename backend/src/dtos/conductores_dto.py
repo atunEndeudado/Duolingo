@@ -6,7 +6,7 @@ class CreateConductoresDTO(BaseModel):  # POST
     licencia: str
     calificacion_promedio: float
 
-
+ 
 class UpdateConductoresDTO(BaseModel):  # PUT/PATCH
     nombre: str | None = None
     licencia: str | None = None

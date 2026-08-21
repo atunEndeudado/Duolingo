@@ -4,7 +4,7 @@ from src.dtos.pasajero_dto import CreatePasajeroDTO, PasajeroResponseDTO
 from src.mappers.pasajero_mapper import to_pasajero_response
 from src.repositories.pasajero_repository import PasajeroRepository
 
-
+ 
 class PasajeroService:
     def __init__(self, db: Session):
         self.repo = PasajeroRepository(db)

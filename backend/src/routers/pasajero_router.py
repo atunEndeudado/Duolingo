@@ -7,7 +7,7 @@ from src.schemas.pasajero_schema import CreatePasajeroSchema
 from src.services.pasajero_service import PasajeroService
 
 router = APIRouter(prefix="/pasajeros", tags=["pasajeros"])
-
+ 
 
 @router.post("/", response_model=PasajeroResponseDTO, status_code=status.HTTP_201_CREATED)
 def create_pasajero(payload: CreatePasajeroSchema, db: Session = Depends(get_db)):

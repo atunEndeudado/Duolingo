@@ -27,3 +27,4 @@ def get_current_user(
         raise UnauthorizedError("User no longer exists")
 
     return user
+ 

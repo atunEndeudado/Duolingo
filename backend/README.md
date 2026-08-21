@@ -25,6 +25,7 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 ## Setup
 
 ```bash
+cd backend
 python -m venv venv
 source venv/bin/activate          # Linux/Mac
 # venv\Scripts\Activate.ps1       # Windows
@@ -36,7 +37,7 @@ uvicorn src.app:app --reload
 ```
 
 Abrir http://localhost:8000/docs para ver Swagger.
-
+ 
 ---
 
 ## Estructura de carpetas

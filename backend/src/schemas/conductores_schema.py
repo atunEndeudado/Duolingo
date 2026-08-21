@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-
+ 
 class CreateConductoresSchema(BaseModel):
     nombre: str = Field(min_length=2)
     licencia: str = Field(min_length=6)
