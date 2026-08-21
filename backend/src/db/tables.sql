@@ -9,7 +9,7 @@ BEGIN;
 -- ============================================================
 -- TABLA: usuario
 -- ============================================================
-CREATE TABLE usuario (
+CREATE TABLE usuarios (
     id                      SERIAL PRIMARY KEY,
     email                   VARCHAR(255) NOT NULL UNIQUE,
     nombre                  VARCHAR(150) NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE usuario (
     racha_dias              INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
     fecha_ultima_actividad  DATE,
     creado_en               TIMESTAMP NOT NULL DEFAULT now();
-    rol                     VARCHAR(20) NOT NULL DEFAULT 'alumno' CHECK (rol IN ('alumno', 'admin')),
+    es_admin                BOOLEAN NOT NULL DEFAULT FALSE,
     es_premium              BOOLEAN NOT NULL DEFAULT FALSE
 );
 
@@ -105,7 +105,7 @@ CREATE TABLE progreso (
 -- ============================================================
 -- TABLA: insignia
 -- ============================================================
-CREATE TABLE insignia (
+CREATE TABLE insignias (
     id          SERIAL PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL UNIQUE,
     descripcion TEXT,
