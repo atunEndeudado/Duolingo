@@ -16,8 +16,20 @@ CREATE TABLE usuario (
     xp_total                INTEGER NOT NULL DEFAULT 0 CHECK (xp_total >= 0),
     racha_dias              INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
     fecha_ultima_actividad  DATE,
-    creado_en               TIMESTAMP NOT NULL DEFAULT now()
+    creado_en               TIMESTAMP NOT NULL DEFAULT now();
+    rol                     VARCHAR(20) NOT NULL DEFAULT 'alumno' CHECK (rol IN ('alumno', 'admin')),
+    es_premium              BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+CREATE TABLE vocabulario (
+    id      SERIAL PRIMARY KEY,
+    palabra VARCHAR(100) NOT NULL,
+    nivel   VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2'))
+);
+
+CREATE INDEX idx_vocabulario_nivel ON vocabulario(nivel);
+
+
 
 -- ============================================================
 -- TABLA: idioma
@@ -27,6 +39,19 @@ CREATE TABLE idioma (
     nombre  VARCHAR(100) NOT NULL UNIQUE,
     codigo  VARCHAR(10)  NOT NULL UNIQUE   -- ej: 'en', 'fr', 'pt-br'
 );
+
+CREATE TABLE solicitud_amistad (
+    id                  SERIAL PRIMARY KEY,
+    usuario_solicitante INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    usuario_receptor    INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    estado              VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+                         CHECK (estado IN ('pendiente', 'aceptada', 'rechazada')),
+    fecha               TIMESTAMP NOT NULL DEFAULT now(),
+    CHECK (usuario_solicitante <> usuario_receptor),
+    UNIQUE (usuario_solicitante, usuario_receptor)
+);
+
+CREATE INDEX idx_solicitud_receptor ON solicitud_amistad(usuario_receptor);
 
 -- ============================================================
 -- TABLA: curso
@@ -51,6 +76,19 @@ CREATE TABLE leccion (
     xp_recompensa INTEGER NOT NULL DEFAULT 10 CHECK (xp_recompensa >= 0),
     UNIQUE (curso_id, orden)
 );
+
+CREATE TABLE preguntas (
+    id          SERIAL PRIMARY KEY,
+    leccion_id  INTEGER NOT NULL REFERENCES leccion(id) ON DELETE CASCADE,
+    orden       INTEGER NOT NULL CHECK (orden > 0),
+    pregunta    VARCHAR(200) NOT NULL,
+    respuesta   VARCHAR(200) NOT NULL,
+    es_premium  BOOLEAN NOT NULL DEFAULT FALSE,
+    UNIQUE (leccion_id, orden)
+);
+
+CREATE INDEX idx_preguntas_leccion ON preguntas(leccion_id);
+
 
 -- ============================================================
 -- TABLA: progreso
