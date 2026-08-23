@@ -4,8 +4,6 @@ from datetime import date, datetime
 class CreateUsuarioDTO(BaseModel):
     email: str
     nombre: str
-    # xp_total, racha_dias, es_admin, es_premium tienen default en la BD
-    # -> normalmente no se piden al crear, se dejan opcionales o se omiten
     es_premium: bool = False
  
  

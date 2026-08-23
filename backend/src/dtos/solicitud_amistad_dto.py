@@ -4,7 +4,6 @@ from datetime import date, datetime
 class CreateSolicitudAmistadDTO(BaseModel):
     usuario_solicitante: int
     usuario_receptor: int
-    # estado tiene default 'pendiente' -> normalmente no se pide al crear
  
  
 class SolicitudAmistadResponseDTO(BaseModel):

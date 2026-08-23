@@ -1,4 +1,4 @@
-from pydantic import BaseModels
+from pydantic import BaseModel
 
 class CreatePreguntaDTO(BaseModel):
     leccion_id: int
