@@ -1,0 +1,15 @@
+from pydantic import BaseModel
+from datetime import date, datetime
+
+class CreateSolicitudAmistadDTO(BaseModel):
+    usuario_solicitante: int
+    usuario_receptor: int
+    # estado tiene default 'pendiente' -> normalmente no se pide al crear
+ 
+ 
+class SolicitudAmistadResponseDTO(BaseModel):
+    id: int
+    usuario_solicitante: int
+    usuario_receptor: int
+    estado: str
+    fecha: datetime
