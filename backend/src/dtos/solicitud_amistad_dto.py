@@ -12,3 +12,6 @@ class SolicitudAmistadResponseDTO(BaseModel):
     usuario_receptor: int
     estado: str
     fecha: datetime
+
+class UpdateSolicitudAmistadDTO(BaseModel):
+    estado: str  
