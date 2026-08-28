@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from src.db.connection import get_db  # Ajusta según cómo importas tu sesión de DB
 from src.db.models import usuario_model         # Ajusta el nombre según tu modelo de Usuario
-from src.dtos.schemas.usuario_schema import UserCreate, UserResponse
+from src.schemas.usuario_schema import UserCreate, UserResponse
 from src.utils.security import hash_password, verify_password, create_access_token
 from pydantic import BaseModel
 

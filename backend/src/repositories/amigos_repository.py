@@ -17,7 +17,7 @@ class AmigoRepository:
     def son_amigos(self, usuario_a: int, usuario_b: int) -> bool:
         a, b = sorted((usuario_a, usuario_b))
         return self.db.get(Amigos, (a, b)) is not None
- 
+ #67
     def listar_amigos_de(self, usuario_id: int) -> list[Amigos]:
         return self.db.execute(select(Amigos).where((Amigos.usuario_a == usuario_id) | (Amigos.usuario_b == usuario_id))).scalars().all()2
     
