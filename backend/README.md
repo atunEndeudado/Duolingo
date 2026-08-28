@@ -23,7 +23,7 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 ---
 
 ## Setup
-
+#Get-Process python | Stop-Process -Force
 ```bash
 cd backend
 python -m venv venv
