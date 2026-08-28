@@ -6,17 +6,17 @@ from src.dtos.auth_dto import RegisterDTO, LoginDTO, TokenDTO
 from src.schemas.auth_schema import RegisterSchema, LoginSchema, TokenSchema
 from src.services.auth_service import AuthService
  
-router = APIRouter(prefix="/auth", tags=["auth"])
+router_auth = APIRouter(prefix="/auth", tags=["auth"])
  
  
-@router.post("/register", response_model=TokenSchema, status_code=201)
+@router_auth.post("/register", response_model=TokenSchema, status_code=201)
 def register(payload: RegisterSchema, db: Session = Depends(get_db)):
     dto = RegisterDTO(**payload.model_dump())
     token: TokenDTO = AuthService(db).register(dto)
     return TokenSchema(**token.model_dump())
  
  
-@router.post("/login", response_model=TokenSchema)
+@router_auth.post("/login", response_model=TokenSchema)
 def login(payload: LoginSchema, db: Session = Depends(get_db)):
     dto = LoginDTO(**payload.model_dump())
     token: TokenDTO = AuthService(db).login(dto)
