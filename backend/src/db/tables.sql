@@ -13,6 +13,7 @@ CREATE TABLE usuarios (
     id                      SERIAL PRIMARY KEY,
     email                   VARCHAR(255) NOT NULL UNIQUE,
     nombre                  VARCHAR(150) NOT NULL,
+    password_hash           VARCHAR(150) NOT NULL, 
     xp_total                INTEGER NOT NULL DEFAULT 0 CHECK (xp_total >= 0),
     racha_dias              INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
     fecha_ultima_actividad  DATE,
