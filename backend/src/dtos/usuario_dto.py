@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import date, datetime
 
 class CreateUsuarioDTO(BaseModel):
-    email: str
+    email: EmailStr
     nombre: str
     password: str
     es_premium: bool = False
