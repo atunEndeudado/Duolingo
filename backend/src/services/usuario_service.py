@@ -2,7 +2,7 @@ from src.db.models.usuario_model import Usuario
 from src.dtos.usuario_dto import CreateUsuarioDTO, UsuarioResponseDTO
 from src.mappers.usuario_mapper import to_usuario_response
 from src.repositories.usuario_repository import UsuarioRepository
- 
+from src.utils.security import hash_password  # Ajusta el nombre según tu archivo en src/utils/
  
 class UsuarioService:
     def __init__(self, repository: UsuarioRepository):
@@ -14,6 +14,7 @@ class UsuarioService:
         usuario = Usuario(
             email=dto.email,
             nombre=dto.nombre,
+            password_hash=hash_password(dto.password), 
             es_premium=dto.es_premium
         )
         usuario = self.repository.crear(usuario)

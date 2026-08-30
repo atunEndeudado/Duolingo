@@ -9,7 +9,7 @@ BEGIN;
 -- ============================================================
 -- TABLA: usuario
 -- ============================================================
-CREATE TABLE usuarios (
+CREATE TABLE usuario (
     id                      SERIAL PRIMARY KEY,
     email                   VARCHAR(255) NOT NULL UNIQUE,
     nombre                  VARCHAR(150) NOT NULL,

@@ -4,6 +4,7 @@ from datetime import date, datetime
 class CreateUsuarioDTO(BaseModel):
     email: str
     nombre: str
+    password: str
     es_premium: bool = False
  
  

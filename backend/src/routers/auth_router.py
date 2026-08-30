@@ -13,31 +13,38 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router_auth.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     # 1. Verificar si el correo ya está registrado
-    existing_user = db.query(usuario_model).filter(usuario_model.Usuario.email == user_in.email).first()
+    existing_user = db.query(usuario_model.Usuario).filter(usuario_model.Usuario.email == user_in.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
 
     # 2. Encriptar contraseña y crear usuario
     hashed_pwd = hash_password(user_in.password)
     new_user = usuario_model.Usuario(
-        username=user_in.username,
+        nombre=user_in.username,
         email=user_in.email,
-        password=hashed_pwd  # Se guarda encriptada
+        password_hash=hashed_pwd,  # Se guarda encriptada
+        xp_total = 0,
+        racha_dias = 0
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     
-    return new_user
+    return {
+        "id": new_user.id,
+        "username": new_user.nombre,       # Mapea 'nombre' a 'username'
+        "email": new_user.email,
+        "created_at": new_user.creado_en   # Mapea 'creado_en' a 'created_at'
+    }
 
-@router.post("/login", response_model=TokenResponse)
+@router_auth.post("/login", response_model=TokenResponse)
 def login(user_in: UserCreate, db: Session = Depends(get_db)):
     # 1. Buscar usuario por email
     user = db.query(usuario_model.Usuario).filter(usuario_model.Usuario.email == user_in.email).first()
-    if not user or not verify_password(user_in.password, user.password):
+    if not user or not verify_password(user_in.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales incorrectas"
