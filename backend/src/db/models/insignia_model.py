@@ -5,7 +5,7 @@ from src.db.connection import Base
 
 # Modelo que representa la tabla de insignias en la base de datos.
 class Insignia(Base):
-    __tablename__ = "insignias"
+    __tablename__ = "insignia"
     # Identificador único de la insignia.
     # Se utiliza como clave primaria de la tabla.
     id = Column(Integer, primary_key=True)
