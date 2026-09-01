@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, Crown, CreditCard, Lock } from "lucide-react";
 
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/premium")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Duolingo Premium — más preguntas por lección" },

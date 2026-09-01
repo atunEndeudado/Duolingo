@@ -4,12 +4,14 @@ import { Check, Clock, Flame, UserPlus } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FilaRanking } from "@/lib/types";
 
 
 export const Route = createFileRoute("/ranking")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Ranking global y semanal — Duolingo" },

@@ -4,6 +4,7 @@ import { Lock, Check, RotateCcw, ArrowLeft } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { LeccionQuiz } from "@/components/LeccionQuiz";

@@ -14,6 +14,7 @@ import { Route as ActividadRouteImport } from './routes/actividad'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AmigosRouteImport } from './routes/amigos'
 import { Route as InsigniasRouteImport } from './routes/insignias'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -44,6 +45,11 @@ const AmigosRoute = AmigosRouteImport.update({
 const InsigniasRoute = InsigniasRouteImport.update({
   id: '/insignias',
   path: '/insignias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
+  '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
+  '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
+  '/login': typeof LoginRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/amigos'
     | '/insignias'
+    | '/login'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/amigos'
     | '/insignias'
+    | '/login'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/amigos'
     | '/insignias'
+    | '/login'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AmigosRoute: typeof AmigosRoute
   InsigniasRoute: typeof InsigniasRoute
+  LoginRoute: typeof LoginRoute
   PerfilRoute: typeof PerfilRoute
   PremiumRoute: typeof PremiumRoute
   RankingRoute: typeof RankingRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/insignias'
       fullPath: '/insignias'
       preLoaderRoute: typeof InsigniasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AmigosRoute: AmigosRoute,
   InsigniasRoute: InsigniasRoute,
+  LoginRoute: LoginRoute,
   PerfilRoute: PerfilRoute,
   PremiumRoute: PremiumRoute,
   RankingRoute: RankingRoute,

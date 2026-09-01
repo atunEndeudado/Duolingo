@@ -5,10 +5,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import * as api from "@/lib/api";
 import { diaISO } from "@/lib/mock-db";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/actividad")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Actividad diaria — Duolingo" },

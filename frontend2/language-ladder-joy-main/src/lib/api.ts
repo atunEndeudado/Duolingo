@@ -1,7 +1,9 @@
 import { diaISO, type DB } from "./mock-db";
 import type {
+  Curso,
   DiaActividad,
   FilaRanking,
+  Idioma,
   Insignia,
   Leccion,
   Nivel,
@@ -10,6 +12,125 @@ import type {
   SolicitudAmistad,
   Usuario,
 } from "./types";
+
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!res.ok) {
+    let message = res.statusText || "Error de la API";
+    try {
+      const data = await res.json();
+      if (typeof data?.detail === "string") message = data.detail;
+      else if (Array.isArray(data?.detail)) message = data.detail.map((d: any) => d.msg ?? d).join(", ");
+      else if (data?.detail) message = String(data.detail);
+    } catch {
+      // noop
+    }
+    throw new Error(message);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+const asStringId = (value: number | string | null | undefined): string => String(value ?? "");
+
+export function mapBackendUsuario(u: any): Usuario {
+  return {
+    id: asStringId(u.id),
+    email: String(u.email ?? ""),
+    nombre: String(u.nombre ?? ""),
+    xp_total: Number(u.xp_total ?? 0),
+    racha_dias: Number(u.racha_dias ?? 0),
+    fecha_ultima_actividad: u.fecha_ultima_actividad ? String(u.fecha_ultima_actividad) : null,
+    premium: Boolean(u.es_premium ?? u.premium ?? false),
+  };
+}
+
+export function mapBackendIdioma(i: any): Idioma {
+  return { id: asStringId(i.id), nombre: String(i.nombre ?? ""), codigo: String(i.codigo ?? "") };
+}
+
+export function mapBackendCurso(c: any): Curso {
+  return { id: asStringId(c.id), idioma_id: asStringId(c.idioma_id), nivel: c.nivel as Nivel };
+}
+
+export function mapBackendLeccion(l: any): Leccion {
+  return {
+    id: asStringId(l.id),
+    curso_id: asStringId(l.curso_id),
+    orden: Number(l.orden ?? 1),
+    titulo: String(l.titulo ?? ""),
+    xp_recompensa: Number(l.xp_recompensa ?? 0),
+  };
+}
+
+export async function listarIdiomas(): Promise<Idioma[]> {
+  const data = await request<any[]>("/idiomas");
+  return (data ?? []).map(mapBackendIdioma);
+}
+
+export async function listarCursosPorIdioma(idiomaId: string): Promise<Curso[]> {
+  const data = await request<any[]>(`/cursos/idioma/${idiomaId}`);
+  return (data ?? []).map(mapBackendCurso);
+}
+
+export async function listarLeccionesPorCurso(cursoId: string): Promise<Leccion[]> {
+  const data = await request<any[]>(`/lecciones/curso/${cursoId}`);
+  return (data ?? []).map(mapBackendLeccion);
+}
+
+export async function crearUsuarioBackend(body: { email: string; nombre: string; password: string }) {
+  const data = await request<any>(`/usuarios/`, {
+    method: "POST",
+    body: JSON.stringify({
+      email: body.email,
+      nombre: body.nombre,
+      password: body.password,
+      es_premium: false,
+    }),
+  });
+  return mapBackendUsuario(data);
+}
+
+export async function crearCursoBackend(body: { idioma_id: string; nivel: Nivel }) {
+  const data = await request<any>(`/cursos/`, {
+    method: "POST",
+    body: JSON.stringify({ idioma_id: Number(body.idioma_id), nivel: body.nivel }),
+  });
+  return mapBackendCurso(data);
+}
+
+export async function crearLeccionBackend(body: { curso_id: string; orden: number; titulo: string; xp_recompensa: number }) {
+  const data = await request<any>(`/lecciones/`, {
+    method: "POST",
+    body: JSON.stringify({
+      curso_id: Number(body.curso_id),
+      orden: body.orden,
+      titulo: body.titulo,
+      xp_recompensa: body.xp_recompensa,
+    }),
+  });
+  return mapBackendLeccion(data);
+}
+
+export async function obtenerUsuarioBackend(usuarioId: string) {
+  const data = await request<any>(`/usuarios/${usuarioId}`);
+  return mapBackendUsuario(data);
+}
+
+export async function listarUsuariosBackend() {
+  const data = await request<any[]>(`/usuarios/`);
+  return (data ?? []).map(mapBackendUsuario);
+}
 
 /**
  * Capa de acceso a datos.

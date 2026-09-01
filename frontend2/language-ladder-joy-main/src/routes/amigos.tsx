@@ -3,9 +3,11 @@ import { Flame, Zap, UserPlus, UserMinus, Check, X, Clock, Crown } from "lucide-
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/amigos")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Amigos y solicitudes — Duolingo" },

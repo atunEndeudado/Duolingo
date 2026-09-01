@@ -4,11 +4,13 @@ import { Check } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/cursos/")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Catálogo de cursos — Duolingo" },

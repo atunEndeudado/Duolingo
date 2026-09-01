@@ -10,7 +10,7 @@ router_usuario_cursos = APIRouter(prefix="/inscripciones", tags=["Inscripciones"
  
  
 def get_usuario_curso_service(db: Session = Depends(get_db)) -> UsuarioCursoService:
-    return UsuarioCursoService(UsuarioCursoRepository(db))
+    return UsuarioCursoService(db)
  
  
 @router_usuario_cursos.post("/", response_model=UsuarioCursoResponseDTO, status_code=201)

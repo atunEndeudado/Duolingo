@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 # DTO utilizado para crear una nueva insignia
 class CreateInsigniaDTO(BaseModel):
     #nombre d la insignia
@@ -16,3 +16,5 @@ class InsigniaResponseDTO(BaseModel):
     nombre: str
     descripcion: str | None
     criterio: str
+
+    model_config = ConfigDict(from_attributes=True)
