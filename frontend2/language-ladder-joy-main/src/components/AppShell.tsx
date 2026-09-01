@@ -53,9 +53,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
           <Link to="/" className="flex items-center gap-2">
             <span className="grid size-9 place-items-center rounded-2xl bg-primary text-lg text-primary-foreground shadow-pop">
-              🐸
+              🦉
             </span>
-            <span className="text-display text-xl font-extrabold tracking-tight">tuboLingo</span>
+            <span className="text-display text-xl font-extrabold tracking-tight">Duolingo</span>
           </Link>
 
           <nav className="ml-4 hidden items-center gap-1 lg:flex">
@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
       <footer className="border-t-2 border-border py-6 text-center text-xs text-muted-foreground">
-        tubolingo · aprendizaje de idiomas
+        Duolingo · aprendizaje de idiomas
       </footer>
     </div>
   );
