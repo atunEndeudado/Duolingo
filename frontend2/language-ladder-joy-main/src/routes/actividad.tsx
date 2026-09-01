@@ -11,13 +11,13 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/actividad")({
   head: () => ({
     meta: [
-      { title: "Actividad diaria — tuboLingo" },
+      { title: "Actividad diaria — Duolingo" },
       {
         name: "description",
         content:
           "Heatmap y gráfico de la XP ganada por día y las lecciones completadas en el rango que elijas.",
       },
-      { property: "og:title", content: "Actividad diaria — tuboLingo" },
+      { property: "og:title", content: "Actividad diaria — Duolingo" },
       { property: "og:description", content: "XP por día y lecciones completadas por día." },
     ],
   }),

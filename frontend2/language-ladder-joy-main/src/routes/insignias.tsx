@@ -9,13 +9,13 @@ import type { CriterioInsignia } from "@/lib/types";
 export const Route = createFileRoute("/insignias")({
   head: () => ({
     meta: [
-      { title: "Insignias — tuboLingo" },
+      { title: "Insignias — Duolingo" },
       {
         name: "description",
         content:
           "Desbloqueá insignias por hitos de XP, racha y lecciones completadas. Cada insignia se otorga una sola vez.",
       },
-      { property: "og:title", content: "Insignias — tuboLingo" },
+      { property: "og:title", content: "Insignias — Duolingo" },
       { property: "og:description", content: "Hitos de XP, racha y lecciones completadas." },
     ],
   }),

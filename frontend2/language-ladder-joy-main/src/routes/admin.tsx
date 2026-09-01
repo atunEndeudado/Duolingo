@@ -18,13 +18,13 @@ import type { Nivel } from "@/lib/types";
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
-      { title: "Alta de contenido — tuboLingo" },
+      { title: "Alta de contenido — Duolingo" },
       {
         name: "description",
         content:
           "Panel de administración: crear cursos por idioma y nivel, y lecciones con orden único y XP entre 5 y 50.",
       },
-      { property: "og:title", content: "Alta de contenido — tuboLingo" },
+      { property: "og:title", content: "Alta de contenido — Duolingo" },
       { property: "og:description", content: "Crear cursos y lecciones del catálogo." },
     ],
   }),

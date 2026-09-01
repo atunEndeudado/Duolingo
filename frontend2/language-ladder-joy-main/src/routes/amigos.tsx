@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/amigos")({
   head: () => ({
     meta: [
-      { title: "Amigos y solicitudes — tuboLingo" },
+      { title: "Amigos y solicitudes — Duolingo" },
       {
         name: "description",
         content:
           "Enviá solicitudes de amistad: la otra persona decide si acepta. Después compará XP y racha.",
       },
-      { property: "og:title", content: "Amigos y solicitudes — tuboLingo" },
+      { property: "og:title", content: "Amigos y solicitudes — Duolingo" },
       { property: "og:description", content: "Solicitudes de amistad con confirmación de ambas partes." },
     ],
   }),

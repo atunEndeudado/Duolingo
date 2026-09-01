@@ -9,13 +9,13 @@ import { Progress } from "@/components/ui/progress";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mi progreso — tuboLingo" },
+      { title: "Mi progreso — Duolingo" },
       {
         name: "description",
         content:
           "Tu panel: XP acumulada, racha diaria, avance por curso y la próxima lección que te toca.",
       },
-      { property: "og:title", content: "Mi progreso — tuboLingo" },
+      { property: "og:title", content: "Mi progreso — Duolingo" },
       {
         property: "og:description",
         content: "XP, racha diaria, avance por curso y próxima lección.",

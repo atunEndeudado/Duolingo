@@ -19,13 +19,13 @@ import type { Leccion } from "@/lib/types";
 export const Route = createFileRoute("/cursos/$cursoId")({
   head: () => ({
     meta: [
-      { title: "Ruta de lecciones — tuboLingo" },
+      { title: "Ruta de lecciones — Duolingo" },
       {
         name: "description",
         content:
           "Completá las lecciones en orden: cada una se desbloquea al aprobar la anterior con 60 puntos o más.",
       },
-      { property: "og:title", content: "Ruta de lecciones — tuboLingo" },
+      { property: "og:title", content: "Ruta de lecciones — Duolingo" },
       { property: "og:description", content: "Lecciones secuenciales, puntaje y XP por lección." },
     ],
   }),

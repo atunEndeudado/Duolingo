@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
-      { title: "Mi perfil — tuboLingo" },
+      { title: "Mi perfil — Duolingo" },
       {
         name: "description",
         content: "Datos de tu cuenta, XP total, racha y cambio rápido de usuario para probar la app.",
       },
-      { property: "og:title", content: "Mi perfil — tuboLingo" },
+      { property: "og:title", content: "Mi perfil — Duolingo" },
       { property: "og:description", content: "Tus datos, XP total y racha diaria." },
     ],
   }),
@@ -62,7 +62,7 @@ function Perfil() {
         {usuario.premium ? (
           <>
             <p className="text-sm text-muted-foreground">
-              Tenés tuboLingo Premium activo: se desbloquean las preguntas extra de cada lección.
+              Tenés Duolingo Premium activo: se desbloquean las preguntas extra de cada lección.
             </p>
             <Button className="mt-3" size="sm" variant="outline" onClick={cancelarPremium}>
               Cancelar suscripción

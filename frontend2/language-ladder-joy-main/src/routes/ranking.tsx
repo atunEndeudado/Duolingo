@@ -12,13 +12,13 @@ import type { FilaRanking } from "@/lib/types";
 export const Route = createFileRoute("/ranking")({
   head: () => ({
     meta: [
-      { title: "Ranking global y semanal — tuboLingo" },
+      { title: "Ranking global y semanal — Duolingo" },
       {
         name: "description",
         content:
           "Top 50 por XP total o por XP de los últimos 7 días, con desempate por racha, más el ranking entre tus amigos.",
       },
-      { property: "og:title", content: "Ranking global y semanal — tuboLingo" },
+      { property: "og:title", content: "Ranking global y semanal — Duolingo" },
       { property: "og:description", content: "Top 50 por XP y ranking entre amigos." },
     ],
   }),

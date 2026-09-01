@@ -11,13 +11,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/cursos/")({
   head: () => ({
     meta: [
-      { title: "Catálogo de cursos — tuboLingo" },
+      { title: "Catálogo de cursos — Duolingo" },
       {
         name: "description",
         content:
           "Explorá cursos por idioma y nivel (A1 a C1) e inscribite. Podés cursar varios idiomas en paralelo.",
       },
-      { property: "og:title", content: "Catálogo de cursos — tuboLingo" },
+      { property: "og:title", content: "Catálogo de cursos — Duolingo" },
       { property: "og:description", content: "Cursos por idioma y nivel, de A1 a C1." },
     ],
   }),

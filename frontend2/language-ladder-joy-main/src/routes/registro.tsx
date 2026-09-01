@@ -9,12 +9,12 @@ import { Label } from "@/components/ui/label";
 export const Route = createFileRoute("/registro")({
   head: () => ({
     meta: [
-      { title: "Crear cuenta — tuboLingo" },
+      { title: "Crear cuenta — Duolingo" },
       {
         name: "description",
         content: "Registrate con tu email para inscribirte a cursos y empezar a acumular XP.",
       },
-      { property: "og:title", content: "Crear cuenta — tuboLingo" },
+      { property: "og:title", content: "Crear cuenta — Duolingo" },
       { property: "og:description", content: "Registrate y empezá a aprender idiomas." },
     ],
   }),

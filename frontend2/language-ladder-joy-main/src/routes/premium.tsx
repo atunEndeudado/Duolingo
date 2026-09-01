@@ -18,13 +18,13 @@ import {
 export const Route = createFileRoute("/premium")({
   head: () => ({
     meta: [
-      { title: "tuboLingo Premium — más preguntas por lección" },
+      { title: "Duolingo Premium — más preguntas por lección" },
       {
         name: "description",
         content:
-          "Suscribite a tuboLingo Premium y desbloqueá las preguntas extra de cada lección, sin límites de repetición.",
+          "Suscribite a Duolingo Premium y desbloqueá las preguntas extra de cada lección, sin límites de repetición.",
       },
-      { property: "og:title", content: "tuboLingo Premium" },
+      { property: "og:title", content: "Duolingo Premium" },
       {
         property: "og:description",
         content: "Pagá tu plan y desbloqueá preguntas extra en todas las lecciones.",
@@ -68,7 +68,7 @@ function Premium() {
       <header className="card-pop bg-badge/10 p-6">
         <h1 className="text-3xl">
           <Crown className="mr-2 inline size-7 text-badge" />
-          tuboLingo Premium
+          Duolingo Premium
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Al confirmar el pago se desbloquean las preguntas extra de todas las lecciones. El estado de
