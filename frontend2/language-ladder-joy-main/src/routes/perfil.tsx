@@ -3,9 +3,11 @@ import { Flame, Zap } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
+import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/perfil")({
+  beforeLoad: requireAuth,
   head: () => ({
     meta: [
       { title: "Mi perfil — tuboLingo" },

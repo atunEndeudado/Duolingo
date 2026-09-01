@@ -17,7 +17,7 @@ CREATE TABLE usuario (
     xp_total                INTEGER NOT NULL DEFAULT 0 CHECK (xp_total >= 0),
     racha_dias              INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
     fecha_ultima_actividad  DATE,
-    creado_en               TIMESTAMP NOT NULL DEFAULT now();
+    creado_en               TIMESTAMP NOT NULL DEFAULT now(),
     es_admin                BOOLEAN NOT NULL DEFAULT FALSE,
     es_premium              BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -106,7 +106,7 @@ CREATE TABLE progreso (
 -- ============================================================
 -- TABLA: insignia
 -- ============================================================
-CREATE TABLE insignias (
+CREATE TABLE insignia (
     id          SERIAL PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL UNIQUE,
     descripcion TEXT,

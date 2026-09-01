@@ -4,9 +4,14 @@ from src.db.connection import get_db  # Ajusta según cómo importas tu sesión 
 from src.db.models import usuario_model         # Ajusta el nombre según tu modelo de Usuario
 from src.schemas.usuario_schema import UserCreate, UserResponse
 from src.utils.security import hash_password, verify_password, create_access_token
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 router_auth = APIRouter(prefix="/auth", tags=["Autenticación"])
+
+# Esquema para login (solo email y password)
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 # Esquema simple para la respuesta del Login
 class TokenResponse(BaseModel):
@@ -41,7 +46,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     }
 
 @router_auth.post("/login", response_model=TokenResponse)
-def login(user_in: UserCreate, db: Session = Depends(get_db)):
+def login(user_in: LoginRequest, db: Session = Depends(get_db)):
     # 1. Buscar usuario por email
     user = db.query(usuario_model.Usuario).filter(usuario_model.Usuario.email == user_in.email).first()
     if not user or not verify_password(user_in.password, user.password_hash):

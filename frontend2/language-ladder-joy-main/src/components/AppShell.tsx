@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Flame, Zap, Menu } from "lucide-react";
+import { Flame, Zap, Menu, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useApp } from "@/lib/store";
+import { useAuth } from "@/lib/authContext";
 import {
   Sheet,
   SheetContent,
@@ -44,6 +45,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { usuario } = useApp();
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,25 +63,44 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
-            {usuario ? (
+            {isAuthenticated ? (
               <>
-                <span className="flex items-center gap-1 rounded-xl bg-streak/15 px-2.5 py-1.5 text-sm font-extrabold text-streak">
-                  <Flame className="size-4" /> {usuario.racha_dias}
-                </span>
-                <span className="flex items-center gap-1 rounded-xl bg-xp/20 px-2.5 py-1.5 text-sm font-extrabold text-xp-foreground">
-                  <Zap className="size-4" /> {usuario.xp_total} XP
-                </span>
-                <Link
-                  to="/perfil"
-                  className="hidden rounded-xl border-2 border-border px-2.5 py-1.5 text-sm font-bold sm:block"
+                {usuario && (
+                  <>
+                    <span className="flex items-center gap-1 rounded-xl bg-streak/15 px-2.5 py-1.5 text-sm font-extrabold text-streak">
+                      <Flame className="size-4" /> {usuario.racha_dias}
+                    </span>
+                    <span className="flex items-center gap-1 rounded-xl bg-xp/20 px-2.5 py-1.5 text-sm font-extrabold text-xp-foreground">
+                      <Zap className="size-4" /> {usuario.xp_total} XP
+                    </span>
+                    <Link
+                      to="/perfil"
+                      className="hidden rounded-xl border-2 border-border px-2.5 py-1.5 text-sm font-bold sm:block"
+                    >
+                      {usuario.nombre.split(" ")[0]}
+                    </Link>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={logout}
+                  className="gap-2"
+                  title="Cerrar sesión"
                 >
-                  {usuario.nombre.split(" ")[0]}
-                </Link>
+                  <LogOut className="size-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
               </>
             ) : (
-              <Button asChild size="sm">
-                <Link to="/registro">Registrarme</Link>
-              </Button>
+              <>
+                <Button asChild variant="outline" size="sm" className="hidden sm:flex">
+                  <Link to="/login">Iniciar sesión</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link to="/registro">Registrarme</Link>
+                </Button>
+              </>
             )}
 
             <Sheet>
@@ -104,8 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
 
       <footer className="border-t-2 border-border py-6 text-center text-xs text-muted-foreground">
-        Front end de demostración — los datos son mock y los endpoints REST están comentados en{" "}
-        <code className="font-mono">src/lib/api.ts</code>.
+        tubolingo · aprendizaje de idiomas
       </footer>
     </div>
   );

@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { AuthService } from "@/services/authService";
 import * as api from "./api";
 import { dbInicial, type DB } from "./mock-db";
 import type { Nivel, Usuario } from "./types";
@@ -8,15 +9,15 @@ import type { Nivel, Usuario } from "./types";
 interface AppContextValue {
   db: DB;
   usuario: Usuario | null;
-  registrar: (body: { email: string; nombre: string }) => boolean;
+  registrar: (body: { email: string; nombre: string; password: string }) => Promise<boolean>;
   inscribirse: (curso_id: string) => void;
-  crearCurso: (body: { idioma_id: string; nivel: Nivel }) => boolean;
+  crearCurso: (body: { idioma_id: string; nivel: Nivel }) => Promise<boolean>;
   crearLeccion: (body: {
     curso_id: string;
     orden: number;
     titulo: string;
     xp_recompensa: number;
-  }) => boolean;
+  }) => Promise<boolean>;
   completarLeccion: (leccion_id: string, puntaje: number) => void;
   activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
@@ -28,27 +29,84 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+function decodeJwtPayload(token: string): { sub?: string; email?: string; nombre?: string } | null {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+    const json = atob(padded);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(dbInicial);
+  const token = AuthService.getToken();
 
-  const usuario = useMemo(
-    () => db.usuarios.find((u) => u.id === db.usuario_actual) ?? null,
-    [db.usuarios, db.usuario_actual],
-  );
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const [idiomas, cursos] = await Promise.all([
+          api.listarIdiomas(),
+          Promise.all([
+            api.listarCursosPorIdioma("1"),
+            api.listarCursosPorIdioma("2"),
+            api.listarCursosPorIdioma("3"),
+          ])
+            .then((res) => res.flat())
+            .catch(() => []),
+        ]);
 
-  const registrar = useCallback((body: { email: string; nombre: string }) => {
-    let creado = false;
-    setDb((prev) => {
-      const res = api.crearUsuario(prev, body);
-      if (!res.ok) {
-        toast.error(res.error);
-        return prev;
+        setDb((prev) => ({
+          ...prev,
+          idiomas,
+          cursos,
+        }));
+      } catch {
+        setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
       }
-      creado = true;
-      toast.success(`¡Bienvenido/a, ${res.data.usuario.nombre}! (201 Created)`);
-      return res.data.db;
-    });
-    return creado;
+    };
+
+    void cargarDatos();
+  }, []);
+
+  const usuario = useMemo(() => {
+    const usuarioDb = db.usuarios.find((u) => u.id === db.usuario_actual) ?? null;
+    if (usuarioDb) return usuarioDb;
+
+    if (!token) return null;
+
+    const payload = decodeJwtPayload(token);
+    if (!payload?.email) return null;
+
+    return {
+      id: String(payload.sub ?? "me"),
+      email: String(payload.email),
+      nombre: String(payload.nombre ?? payload.email.split("@")[0]),
+      xp_total: 0,
+      racha_dias: 0,
+      fecha_ultima_actividad: null,
+      premium: false,
+    } satisfies Usuario;
+  }, [db.usuarios, db.usuario_actual, token]);
+
+  const registrar = useCallback(async (body: { email: string; nombre: string; password: string }) => {
+    try {
+      const usuarioCreado = await api.crearUsuarioBackend(body);
+      setDb((prev) => ({
+        ...prev,
+        usuarios: [...prev.usuarios, usuarioCreado],
+        usuario_actual: usuarioCreado.id,
+      }));
+      toast.success(`¡Bienvenido/a, ${usuarioCreado.nombre}!`);
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo registrar");
+      return false;
+    }
   }, []);
 
   const inscribirse = useCallback(
@@ -67,35 +125,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [usuario],
   );
 
-  const crearCurso = useCallback((body: { idioma_id: string; nivel: Nivel }) => {
-    let hecho = false;
-    setDb((prev) => {
-      const res = api.crearCurso(prev, body);
-      if (!res.ok) {
-        toast.error(res.error);
-        return prev;
-      }
-      hecho = true;
+  const crearCurso = useCallback(async (body: { idioma_id: string; nivel: Nivel }) => {
+    try {
+      const curso = await api.crearCursoBackend(body);
+      setDb((prev) => ({
+        ...prev,
+        cursos: [...prev.cursos, curso],
+      }));
       toast.success("Curso creado");
-      return res.data.db;
-    });
-    return hecho;
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el curso");
+      return false;
+    }
   }, []);
 
   const crearLeccion = useCallback(
-    (body: { curso_id: string; orden: number; titulo: string; xp_recompensa: number }) => {
-      let hecho = false;
-      setDb((prev) => {
-        const res = api.crearLeccion(prev, body);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
-        hecho = true;
+    async (body: { curso_id: string; orden: number; titulo: string; xp_recompensa: number }) => {
+      try {
+        const leccion = await api.crearLeccionBackend(body);
+        setDb((prev) => ({
+          ...prev,
+          lecciones: [...prev.lecciones, leccion],
+        }));
         toast.success("Lección creada");
-        return res.data.db;
-      });
-      return hecho;
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo crear la lección");
+        return false;
+      }
     },
     [],
   );
