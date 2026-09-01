@@ -11,4 +11,4 @@ class Usuario_cursos(Base):
         # Identificador del curso en el que está inscrito el usuario.
     curso_id = Column(Integer, nullable=False)
         # Fecha y hora en la que el usuario se inscribió en el curso.
-    fecha_inscripcion = Column(DateTime, nullable=False)
+    fecha_inscripcion = Column(DateTime, nullable=False, default=func.current_date())
