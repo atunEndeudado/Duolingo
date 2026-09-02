@@ -18,21 +18,22 @@ interface AppContextValue {
     titulo: string;
     xp_recompensa: number;
   }) => Promise<boolean>;
-      crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
-    crearVocabulario: (body: {
-      palabra: string;
-      traduccion: string;
-      nivel: Nivel;
-      idioma_id: string;
-    }) => Promise<boolean>;
-    crearPregunta: (body: {
-      leccion_id: string;
-      orden: number;
-      pregunta: string;
-      respuesta: string;
-      es_premium: boolean;
-    }) => Promise<boolean>;
+  crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
+  crearVocabulario: (body: {
+    palabra: string;
+    traduccion: string;
+    nivel: Nivel;
+    idioma_id: string;
+  }) => Promise<boolean>;
+  crearPregunta: (body: {
+    leccion_id: string;
+    orden: number;
+    pregunta: string;
+    respuesta: string;
+    es_premium: boolean;
+  }) => Promise<boolean>;
   completarLeccion: (leccion_id: string, puntaje: number) => void;
+  activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
   enviarSolicitud: (amigo_id: string) => void;
   responderSolicitud: (solicitud_id: string, acepta: boolean) => void;
@@ -214,6 +215,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [usuario],
   );
 
+  const activarPremium = useCallback(
+    (plan: string) => {
+      if (!usuario) return;
+      setDb((prev) => {
+        const res = api.activarPremium(prev, usuario.id);
+        if (!res.ok) {
+          toast.error(res.error);
+          return prev;
+        }
+        toast.success(`Pago aprobado · plan ${plan}. ¡Preguntas Premium desbloqueadas!`);
+        return res.data.db;
+      });
+    },
+    [usuario],
+  );
+
   const cancelarPremium = useCallback(() => {
     if (!usuario) return;
     setDb((prev) => api.cancelarPremium(prev, usuario.id));
@@ -257,52 +274,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (amigo_id: string) => {
       if (!usuario) return;
       setDb((prev) => api.eliminarAmigo(prev, usuario.id, amigo_id));
-      const crearVocabulario = useCallback(
-        async (body: {
-          palabra: string;
-          traduccion: string;
-          nivel: Nivel;
-          idioma_id: string;
-        }) => {
-          try {
-            const vocabulario = await api.crearVocabularioBackend(body);
-            setDb((prev) => ({
-              ...prev,
-              vocabulario: [...prev.vocabulario, vocabulario],
-            }));
-            return true;
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : "No se pudo agregar la palabra");
-            return false;
-          }
-        },
-        [],
-      );
-
-      const crearPregunta = useCallback(
-        async (body: {
-          leccion_id: string;
-          orden: number;
-          pregunta: string;
-          respuesta: string;
-          es_premium: boolean;
-        }) => {
-          try {
-            const pregunta = await api.crearPreguntaBackend(body);
-            setDb((prev) => ({
-              ...prev,
-              preguntas: [...prev.preguntas, pregunta],
-            }));
-            return true;
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : "No se pudo agregar la pregunta");
-            return false;
-          }
-        },
-        [],
-      );
     },
     [usuario],
+  );
+
+  const crearVocabulario = useCallback(
+    async (body: {
+      palabra: string;
+      traduccion: string;
+      nivel: Nivel;
+      idioma_id: string;
+    }) => {
+      try {
+        const vocabulario = await api.crearVocabularioBackend(body);
+        setDb((prev) => ({
+          ...prev,
+          vocabulario: [...prev.vocabulario, vocabulario],
+        }));
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo agregar la palabra");
+        return false;
+      }
+    },
+    [],
+  );
+
+  const crearPregunta = useCallback(
+    async (body: {
+      leccion_id: string;
+      orden: number;
+      pregunta: string;
+      respuesta: string;
+      es_premium: boolean;
+    }) => {
+      try {
+        const pregunta = await api.crearPreguntaBackend(body);
+        setDb((prev) => ({
+          ...prev,
+          preguntas: [...prev.preguntas, pregunta],
+        }));
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo agregar la pregunta");
+        return false;
+      }
+    },
+    [],
   );
 
   const value: AppContextValue = {
@@ -312,8 +330,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     inscribirse,
     crearCurso,
     crearLeccion,
-      crearIdioma,
+    crearIdioma,
     completarLeccion,
+    activarPremium,
     cancelarPremium,
     enviarSolicitud,
     responderSolicitud,

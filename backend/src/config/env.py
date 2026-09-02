@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -6,12 +6,17 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     # Puerto de ejecución de la aplicación.
     PORT: int = 8000
-        # Clave utilizada para firmar los tokens JWT.
+    # Clave utilizada para firmar los tokens JWT.
     JWT_SECRET: str
+    # Token de integración con Mercado Pago.
+    MERCADOPAGO_ACCESS_TOKEN: str = ""
 
-    class Config:
-        # Carga las variables de configuración desde .env.
-        env_file = ".env"
+    # Configuración de Pydantic
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",  # Evita errores si hay variables extra en el .env
+    )
+
 
 # Instancia global de configuración.
 settings = Settings()
