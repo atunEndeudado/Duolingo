@@ -14,7 +14,7 @@ class VocabularioService:
             traduccion=dto.traduccion,
             nivel=dto.nivel,
             idioma_id=dto.idioma_id,
-        )
+        ) 
         palabra = self.repository.crear(palabra)
         return to_vocabulario_response(palabra)
  
