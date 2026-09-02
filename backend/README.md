@@ -34,7 +34,7 @@ pip install -r requirements.txt
 python -m pip install mercadopago python-dateutil
 cp .env.example .env               # editá con tus credenciales
 
-uvicorn src.app:app --reload
+uvicorn src.app:app --reload --port 8010
 ```
 
 Abrir http://localhost:8000/docs para ver Swagger.
