@@ -1,4 +1,4 @@
-const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL ?? "http://127.0.0.1:8001/api";
+const AUTH_API_URL = import.meta.env['VITE_AUTH_API_URL'] ?? "http://127.0.0.1:8000/api";
 
 interface LoginResponse {
   access_token: string;
