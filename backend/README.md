@@ -31,6 +31,7 @@ source venv/bin/activate          # Linux/Mac
 # venv\Scripts\Activate.ps1       # Windows
 
 pip install -r requirements.txt
+python -m pip install mercadopago python-dateutil
 cp .env.example .env               # editá con tus credenciales
 
 uvicorn src.app:app --reload

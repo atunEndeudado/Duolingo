@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.middlewares.error_middleware import app_error_handler
-from src.routers import auth_router, usuario_router, curso_router, idioma_router, insignias_router,leccion_router,pregunta_router,usuario_cursos_router, usuario_insignias_router,vocabulario_router
+from src.routers import auth_router, usuario_router, curso_router, idioma_router, insignias_router,leccion_router,pregunta_router,usuario_cursos_router, usuario_insignias_router,vocabulario_router, pago_router
 from src.utils.errors import AppError
  
 app = FastAPI(title="Tubolingo API")
@@ -18,7 +18,7 @@ app.include_router(pregunta_router.router_preguntas, prefix="/api")
 app.include_router(usuario_cursos_router.router_usuario_cursos, prefix="/api")
 app.include_router(usuario_insignias_router.router_usuario_insignias, prefix="/api")
 app.include_router(vocabulario_router.router_vocabulario, prefix="/api")
-
+app.include_router(pago_router.router_pago, prefix="/api")
 
 # Configuración de CORS
 app.add_middleware(

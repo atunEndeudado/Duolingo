@@ -10,16 +10,17 @@ BEGIN;
 -- TABLA: usuario
 -- ============================================================
 CREATE TABLE usuario (
-    id                      SERIAL PRIMARY KEY,
-    email                   VARCHAR(255) NOT NULL UNIQUE,
-    nombre                  VARCHAR(150) NOT NULL,
-    password_hash           VARCHAR(150) NOT NULL, 
-    xp_total                INTEGER NOT NULL DEFAULT 0 CHECK (xp_total >= 0),
-    racha_dias              INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
-    fecha_ultima_actividad  DATE,
-    creado_en               TIMESTAMP NOT NULL DEFAULT now(),
-    es_admin                BOOLEAN NOT NULL DEFAULT FALSE,
-    es_premium              BOOLEAN NOT NULL DEFAULT FALSE
+    id                     SERIAL PRIMARY KEY,
+    email                  VARCHAR(255) NOT NULL UNIQUE,
+    nombre                 VARCHAR(150) NOT NULL,
+    password_hash          VARCHAR(150) NOT NULL, 
+    xp_total               INTEGER NOT NULL DEFAULT 0 CHECK (xp_total >= 0),
+    racha_dias             INTEGER NOT NULL DEFAULT 0 CHECK (racha_dias >= 0),
+    fecha_ultima_actividad DATE,
+    creado_en              TIMESTAMP NOT NULL DEFAULT now(),
+    es_admin               BOOLEAN NOT NULL DEFAULT FALSE,
+    es_premium             BOOLEAN NOT NULL DEFAULT FALSE,
+    suscripcion_hasta      TIMESTAMP WITHOUT TIME ZONE -- AGREGADO: Fecha de vencimiento de suscripción Premium
 );
 
 CREATE TABLE vocabulario (
@@ -44,7 +45,7 @@ CREATE TABLE solicitud_amistad (
     usuario_solicitante INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
     usuario_receptor    INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
     estado              VARCHAR(20) NOT NULL DEFAULT 'pendiente'
-                         CHECK (estado IN ('pendiente', 'aceptada', 'rechazada')),
+                        CHECK (estado IN ('pendiente', 'aceptada', 'rechazada')),
     fecha               TIMESTAMP NOT NULL DEFAULT now(),
     CHECK (usuario_solicitante <> usuario_receptor),
     UNIQUE (usuario_solicitante, usuario_receptor)
@@ -57,9 +58,9 @@ CREATE INDEX idx_solicitud_receptor ON solicitud_amistad(usuario_receptor);
 -- Un curso = un idioma en un nivel determinado
 -- ============================================================
 CREATE TABLE curso (
-    id          SERIAL PRIMARY KEY,
-    idioma_id   INTEGER NOT NULL REFERENCES idioma(id) ON DELETE CASCADE,
-    nivel       VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
+    id        SERIAL PRIMARY KEY,
+    idioma_id INTEGER NOT NULL REFERENCES idioma(id) ON DELETE CASCADE,
+    nivel     VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
     UNIQUE (idioma_id, nivel)
 );
 
@@ -114,12 +115,26 @@ CREATE TABLE insignia (
 );
 
 -- ============================================================
+-- TABLA: suscripcion 
+-- ============================================================
+CREATE TABLE suscripcion (
+    id                  SERIAL PRIMARY KEY,
+    usuario_id          INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    payment_id          VARCHAR(100) UNIQUE, -- ID del pago enviado por Mercado Pago
+    plan                VARCHAR(50) NOT NULL, 
+    monto               NUMERIC(10,2) NOT NULL,
+    estado              VARCHAR(50) NOT NULL DEFAULT 'aprobado',
+    fecha_inicio        TIMESTAMP NOT NULL DEFAULT now(),
+    fecha_fin           TIMESTAMP NOT NULL
+);
+
+-- ============================================================
 -- N:M — usuario_cursos (inscripciones)
 -- ============================================================
 CREATE TABLE usuario_cursos (
-    usuario_id          INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
-    curso_id            INTEGER NOT NULL REFERENCES curso(id)   ON DELETE CASCADE,
-    fecha_inscripcion   DATE NOT NULL DEFAULT CURRENT_DATE,
+    usuario_id        INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
+    curso_id          INTEGER NOT NULL REFERENCES curso(id)   ON DELETE CASCADE,
+    fecha_inscripcion DATE NOT NULL DEFAULT CURRENT_DATE,
     PRIMARY KEY (usuario_id, curso_id)
 );
 
@@ -157,6 +172,7 @@ CREATE INDEX idx_progreso_leccion   ON progreso(leccion_id);
 CREATE INDEX idx_usuario_xp         ON usuario(xp_total DESC);
 CREATE INDEX idx_usuario_cursos_c   ON usuario_cursos(curso_id);
 CREATE INDEX idx_amigos_b           ON amigos(usuario_b);
+CREATE INDEX idx_suscripcion_usuario ON suscripcion(usuario_id); -- AGREGADO
 
 -- ============================================================
 -- LÓGICA DE NEGOCIO: TRIGGERS
@@ -249,8 +265,8 @@ CREATE VIEW v_progreso_curso AS
 SELECT
     uc.usuario_id,
     uc.curso_id,
-    COUNT(l.id)                                            AS total_lecciones,
-    COUNT(p.id) FILTER (WHERE p.completada)                AS lecciones_completadas,
+    COUNT(l.id)                                             AS total_lecciones,
+    COUNT(p.id) FILTER (WHERE p.completada)                 AS lecciones_completadas,
     ROUND(
         100.0 * COUNT(p.id) FILTER (WHERE p.completada) / NULLIF(COUNT(l.id), 0), 2
     )                                                       AS porcentaje_avance
@@ -258,34 +274,3 @@ FROM usuario_cursos uc
 JOIN leccion l ON l.curso_id = uc.curso_id
 LEFT JOIN progreso p ON p.leccion_id = l.id AND p.usuario_id = uc.usuario_id
 GROUP BY uc.usuario_id, uc.curso_id;
-
--- ============================================================
--- EJEMPLOS DE CONSULTAS
--- ============================================================
-
--- Top 10 usuarios por XP
--- SELECT * FROM v_ranking_xp ORDER BY posicion LIMIT 10;
-
--- Progreso de un usuario en todos sus cursos
--- SELECT c.nivel, i.nombre AS idioma, pc.porcentaje_avance
--- FROM v_progreso_curso pc
--- JOIN curso c ON c.id = pc.curso_id
--- JOIN idioma i ON i.id = c.idioma_id
--- WHERE pc.usuario_id = 1;
-
--- Ranking de XP solo entre los amigos de un usuario
--- SELECT u.id, u.nombre, u.xp_total
--- FROM usuario u
--- WHERE u.id IN (
---     SELECT usuario_b FROM amigos WHERE usuario_a = 1
---     UNION
---     SELECT usuario_a FROM amigos WHERE usuario_b = 1
--- )
--- ORDER BY u.xp_total DESC;
-
--- Insignias obtenidas por un usuario
--- SELECT i.nombre, ui.fecha
--- FROM usuario_insignias ui
--- JOIN insignia i ON i.id = ui.insignia_id
--- WHERE ui.usuario_id = 1
--- ORDER BY ui.fecha;

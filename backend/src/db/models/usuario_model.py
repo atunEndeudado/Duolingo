@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 from src.db.connection import Base
+from sqlalchemy.orm import relationship 
 
 
 class Usuario(Base):
@@ -22,5 +23,7 @@ class Usuario(Base):
     creado_en = Column(DateTime, server_default=func.now())
     #fecha hora ultima act
     fecha_ultima_actividad = Column(DateTime)
+    suscripcion_hasta = Column(DateTime, nullable=True)
+    suscripciones = relationship("Suscripcion", back_populates="usuario", cascade="all, delete-orphan")
 
  
