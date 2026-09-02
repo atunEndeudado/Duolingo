@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
+import os
 import mercadopago
 from sqlalchemy.orm import Session
 from src.db.models.usuario_model import Usuario
@@ -8,6 +9,7 @@ from src.db.models.suscripcion_model import Suscripcion
 # Reemplaza con tu credencial de Mercado Pago
 ACCESS_TOKEN = "PROD_CUSTOM_ACCESS_TOKEN_O_TEST_TOKEN"
 sdk = mercadopago.SDK(ACCESS_TOKEN)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:8082").rstrip("/")
 
 PLANES = {
     "mes_1": {"title": "Tubolingo Premium - 1 Mes", "price": 4999.00, "meses": 1},
@@ -37,9 +39,9 @@ class PagoService:
             "payer": {"email": email},
             "external_reference": f"{usuario_id}:{plan_key}",
             "back_urls": {
-                "success": "http://localhost:3000/pago-exitoso",
-                "failure": "http://localhost:3000/pago-fallido",
-                "pending": "http://localhost:3000/pago-pendiente",
+                "success": f"{FRONTEND_URL}/pago-exitoso",
+                "failure": f"{FRONTEND_URL}/pago-fallido",
+                "pending": f"{FRONTEND_URL}/pago-pendiente",
             },
             "auto_return": "approved",
         }

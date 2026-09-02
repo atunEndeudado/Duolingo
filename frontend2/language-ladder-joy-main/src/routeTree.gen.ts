@@ -15,6 +15,9 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AmigosRouteImport } from './routes/amigos'
 import { Route as InsigniasRouteImport } from './routes/insignias'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PagoExitosoRouteImport } from './routes/pago-exitoso'
+import { Route as PagoFallidoRouteImport } from './routes/pago-fallido'
+import { Route as PagoPendienteRouteImport } from './routes/pago-pendiente'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -50,6 +53,21 @@ const InsigniasRoute = InsigniasRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoExitosoRoute = PagoExitosoRouteImport.update({
+  id: '/pago-exitoso',
+  path: '/pago-exitoso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoFallidoRoute = PagoFallidoRouteImport.update({
+  id: '/pago-fallido',
+  path: '/pago-fallido',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PagoPendienteRoute = PagoPendienteRouteImport.update({
+  id: '/pago-pendiente',
+  path: '/pago-pendiente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -90,6 +108,9 @@ export interface FileRoutesByFullPath {
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
   '/login': typeof LoginRoute
+  '/pago-exitoso': typeof PagoExitosoRoute
+  '/pago-fallido': typeof PagoFallidoRoute
+  '/pago-pendiente': typeof PagoPendienteRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -104,6 +125,9 @@ export interface FileRoutesByTo {
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
   '/login': typeof LoginRoute
+  '/pago-exitoso': typeof PagoExitosoRoute
+  '/pago-fallido': typeof PagoFallidoRoute
+  '/pago-pendiente': typeof PagoPendienteRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -119,6 +143,9 @@ export interface FileRoutesById {
   '/amigos': typeof AmigosRoute
   '/insignias': typeof InsigniasRoute
   '/login': typeof LoginRoute
+  '/pago-exitoso': typeof PagoExitosoRoute
+  '/pago-fallido': typeof PagoFallidoRoute
+  '/pago-pendiente': typeof PagoPendienteRoute
   '/perfil': typeof PerfilRoute
   '/premium': typeof PremiumRoute
   '/ranking': typeof RankingRoute
@@ -135,6 +162,9 @@ export interface FileRouteTypes {
     | '/amigos'
     | '/insignias'
     | '/login'
+    | '/pago-exitoso'
+    | '/pago-fallido'
+    | '/pago-pendiente'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -149,6 +179,9 @@ export interface FileRouteTypes {
     | '/amigos'
     | '/insignias'
     | '/login'
+    | '/pago-exitoso'
+    | '/pago-fallido'
+    | '/pago-pendiente'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -163,6 +196,9 @@ export interface FileRouteTypes {
     | '/amigos'
     | '/insignias'
     | '/login'
+    | '/pago-exitoso'
+    | '/pago-fallido'
+    | '/pago-pendiente'
     | '/perfil'
     | '/premium'
     | '/ranking'
@@ -178,6 +214,9 @@ export interface RootRouteChildren {
   AmigosRoute: typeof AmigosRoute
   InsigniasRoute: typeof InsigniasRoute
   LoginRoute: typeof LoginRoute
+  PagoExitosoRoute: typeof PagoExitosoRoute
+  PagoFallidoRoute: typeof PagoFallidoRoute
+  PagoPendienteRoute: typeof PagoPendienteRoute
   PerfilRoute: typeof PerfilRoute
   PremiumRoute: typeof PremiumRoute
   RankingRoute: typeof RankingRoute
@@ -228,6 +267,27 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago-exitoso': {
+      id: '/pago-exitoso'
+      path: '/pago-exitoso'
+      fullPath: '/pago-exitoso'
+      preLoaderRoute: typeof PagoExitosoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago-fallido': {
+      id: '/pago-fallido'
+      path: '/pago-fallido'
+      fullPath: '/pago-fallido'
+      preLoaderRoute: typeof PagoFallidoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pago-pendiente': {
+      id: '/pago-pendiente'
+      path: '/pago-pendiente'
+      fullPath: '/pago-pendiente'
+      preLoaderRoute: typeof PagoPendienteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -282,6 +342,9 @@ const rootRouteChildren: RootRouteChildren = {
   AmigosRoute: AmigosRoute,
   InsigniasRoute: InsigniasRoute,
   LoginRoute: LoginRoute,
+  PagoExitosoRoute: PagoExitosoRoute,
+  PagoFallidoRoute: PagoFallidoRoute,
+  PagoPendienteRoute: PagoPendienteRoute,
   PerfilRoute: PerfilRoute,
   PremiumRoute: PremiumRoute,
   RankingRoute: RankingRoute,

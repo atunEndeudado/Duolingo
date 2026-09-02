@@ -5,16 +5,8 @@ import { Check, Crown, CreditCard, Lock } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { createPaymentPreference, type PaymentPlan } from "@/services/paymentService";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/premium")({
   beforeLoad: requireAuth,
@@ -38,18 +30,18 @@ export const Route = createFileRoute("/premium")({
 
 const PLANES = [
   {
-    id: "mensual",
+    id: "mes_1",
     nombre: "Mensual",
-    precio: "USD 6,99",
+    precio: "ARS 4.999",
     periodo: "por mes",
     detalle: "Cancelás cuando quieras.",
   },
   {
-    id: "anual",
+    id: "año_1",
     nombre: "Anual",
-    precio: "USD 49,99",
+    precio: "ARS 39.999",
     periodo: "por año",
-    detalle: "Equivale a USD 4,17 por mes.",
+    detalle: "Acceso Premium durante 12 meses.",
   },
 ] as const;
 
@@ -60,10 +52,21 @@ const BENEFICIOS = [
   "Sin anuncios entre lecciones",
 ];
 
-// POST /usuarios/{id}/suscripcion { plan, metodo_pago } -> 201
 function Premium() {
-  const { usuario, activarPremium, cancelarPremium } = useApp();
-  const [plan, setPlan] = useState<string | null>(null);
+  const { usuario, cancelarPremium } = useApp();
+  const [isStartingPayment, setIsStartingPayment] = useState(false);
+
+  const iniciarPago = async (plan: PaymentPlan) => {
+    if (!usuario || isStartingPayment) return;
+    setIsStartingPayment(true);
+    try {
+      const preference = await createPaymentPreference(usuario.id, usuario.email, plan);
+      window.location.assign(preference.init_point);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo iniciar el pago");
+      setIsStartingPayment(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -109,11 +112,11 @@ function Premium() {
             <p className="mt-2 flex-1 text-sm">{p.detalle}</p>
             <Button
               className="mt-4 shadow-pop"
-              disabled={!usuario || usuario.premium}
-              onClick={() => setPlan(p.nombre)}
+              disabled={!usuario || usuario.premium || isStartingPayment}
+              onClick={() => void iniciarPago(p.id)}
             >
               <CreditCard className="mr-1 size-4" />
-              {usuario?.premium ? "Ya sos Premium" : "Pagar y desbloquear"}
+              {isStartingPayment ? "Abriendo checkout..." : usuario?.premium ? "Ya sos Premium" : "Pagar y desbloquear"}
             </Button>
           </article>
         ))}
@@ -126,49 +129,9 @@ function Premium() {
         </p>
       ) : null}
 
-      <Dialog open={Boolean(plan)} onOpenChange={(o) => !o && setPlan(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-display">Pago del plan {plan}</DialogTitle>
-            <DialogDescription>
-              Checkout de demostración: no se procesa ningún cobro real. Al confirmar se activa Premium
-              en tu cuenta.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="tarjeta">Tarjeta</Label>
-              <Input id="tarjeta" placeholder="4242 4242 4242 4242" inputMode="numeric" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="vto">Vencimiento</Label>
-                <Input id="vto" placeholder="12/29" />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="cvc">CVC</Label>
-                <Input id="cvc" placeholder="123" />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPlan(null)}>
-              Cancelar
-            </Button>
-            <Button
-              className="shadow-pop"
-              onClick={() => {
-                if (plan) activarPremium(plan);
-                setPlan(null);
-              }}
-            >
-              Confirmar pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <p className="text-center text-xs text-muted-foreground">
+        El pago se procesa de forma segura en Mercado Pago. Premium se activa cuando el pago sea aprobado.
+      </p>
     </div>
   );
 }
