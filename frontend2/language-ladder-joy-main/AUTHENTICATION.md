@@ -23,7 +23,7 @@ Servicio de autenticación que maneja las llamadas al backend.
 - `isAuthenticated(): boolean` - Verifica si hay sesión activa
 
 **Configuración:**
-- URL del backend: `process.env.VITE_AUTH_API_URL` (default: `http://127.0.0.1:8005`)
+- URL del backend: `process.env.VITE_AUTH_API_URL` (default: `http://127.0.0.1:8000`)
 
 ### 2. **src/lib/authContext.tsx**
 Contexto de React que proporciona el estado de autenticación a la app.
@@ -160,10 +160,10 @@ Error (401, 400, etc):
 
 **Variables de entorno:**
 ```
-VITE_AUTH_API_URL=http://127.0.0.1:8005
+VITE_AUTH_API_URL=http://127.0.0.1:8000
 ```
 
-(default: `http://127.0.0.1:8005` si no está definido)
+(default: `http://127.0.0.1:8000` si no está definido)
 
 ---
 

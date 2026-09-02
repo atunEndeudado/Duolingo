@@ -10,6 +10,7 @@ export interface Usuario {
   racha_dias: number;
   fecha_ultima_actividad: string | null; // ISO
   premium: boolean;
+  es_admin: boolean;
 }
 
 export interface Idioma {

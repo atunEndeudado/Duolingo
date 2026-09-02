@@ -24,18 +24,13 @@ class AuthService:
         )
         usuario = self.usuario_repository.crear(usuario)
  
-        token = create_access_token(data={"sub": str(usuario.id), "email": usuario.email})
+        token = create_access_token(data={"sub": str(usuario.id), "email": usuario.email, "es_admin": usuario.es_admin})
         return TokenDTO(access_token=token)
  
     def login(self, dto: LoginDTO) -> TokenDTO:
-        user = self.repo.obtener_por_email(dto.email)
-        if not user or not verify_password(dto.password, user.password):
-            raise UnauthorizedError("Invalid credentials")
-
-        token = create_access_token({"sub": str(user.id), "email": user.email})
         usuario = self.usuario_repository.obtener_por_email(dto.email)
         if not usuario or not verify_password(dto.password, usuario.password_hash):
             raise UnauthorizedError("Credenciales incorrectas")
  
-        token = create_access_token(data={"sub": str(usuario.id), "email": usuario.email})
+        token = create_access_token(data={"sub": str(usuario.id), "email": usuario.email, "es_admin": usuario.es_admin})
         return TokenDTO(access_token=token)

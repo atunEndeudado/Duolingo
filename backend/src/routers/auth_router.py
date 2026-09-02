@@ -55,6 +55,6 @@ def login(user_in: LoginRequest, db: Session = Depends(get_db)):
             detail="Credenciales incorrectas"
         )
 
-    # 2. Crear y devolver Token JWT
-    token = create_access_token(data={"sub": str(user.id), "email": user.email})
+    # 2. Crear y devolver Token JWT con es_admin
+    token = create_access_token(data={"sub": str(user.id), "email": user.email, "es_admin": user.es_admin})
     return {"access_token": token, "token_type": "bearer"}

@@ -13,7 +13,7 @@ import type {
   Usuario,
 } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -52,6 +52,7 @@ export function mapBackendUsuario(u: any): Usuario {
     racha_dias: Number(u.racha_dias ?? 0),
     fecha_ultima_actividad: u.fecha_ultima_actividad ? String(u.fecha_ultima_actividad) : null,
     premium: Boolean(u.es_premium ?? u.premium ?? false),
+    es_admin: Boolean(u.es_admin ?? false),
   };
 }
 
@@ -183,6 +184,7 @@ export function crearUsuario(
     racha_dias: 0,
     fecha_ultima_actividad: null,
     premium: false,
+    es_admin: false,
   };
   return ok({ db: { ...db, usuarios: [...db.usuarios, usuario], usuario_actual: usuario.id }, usuario });
 }
