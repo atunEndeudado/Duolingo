@@ -24,10 +24,18 @@ const NAV = [
   { to: "/admin", label: "Admin" },
 ] as const;
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({ onNavigate, isAdmin = false }: { onNavigate?: () => void; isAdmin?: boolean }) {
+  const navItems = NAV.filter((item) => {
+    // Solo mostrar Admin si el usuario es admin
+    if (item.to === "/admin" && !isAdmin) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <>
-      {NAV.map((item) => (
+      {navItems.map((item) => (
         <Link
           key={item.to}
           to={item.to}
@@ -59,7 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="ml-4 hidden items-center gap-1 lg:flex">
-            <NavLinks />
+            <NavLinks isAdmin={usuario?.es_admin ?? false} />
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -114,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <SheetTitle className="text-display">Navegación</SheetTitle>
                 </SheetHeader>
                 <nav className="mt-4 flex flex-col gap-1 px-4">
-                  <NavLinks />
+                  <NavLinks isAdmin={usuario?.es_admin ?? false} />
                 </nav>
               </SheetContent>
             </Sheet>

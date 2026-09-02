@@ -29,7 +29,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-function decodeJwtPayload(token: string): { sub?: string; email?: string; nombre?: string } | null {
+function decodeJwtPayload(token: string): { sub?: string; email?: string; nombre?: string; es_admin?: boolean } | null {
   try {
     const base64Url = token.split(".")[1];
     if (!base64Url) return null;
@@ -90,6 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       racha_dias: 0,
       fecha_ultima_actividad: null,
       premium: false,
+      es_admin: payload.es_admin ?? false,
     } satisfies Usuario;
   }, [db.usuarios, db.usuario_actual, token]);
 
