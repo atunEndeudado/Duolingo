@@ -5,5 +5,7 @@ def to_vocabulario_response(vocabulario: Vocabulario) -> VocabularioResponseDTO:
     return VocabularioResponseDTO(
         id=vocabulario.id,
         palabra=vocabulario.palabra,
-        nivel=vocabulario.nivel
+        traduccion=vocabulario.traduccion,
+        nivel=vocabulario.nivel,
+        idioma_id=vocabulario.idioma_id,
     )

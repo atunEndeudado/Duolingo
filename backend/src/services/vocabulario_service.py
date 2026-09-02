@@ -9,7 +9,7 @@ class VocabularioService:
         self.repository = repository
  
     def crear_palabra(self, dto: CreateVocabularioDTO) -> VocabularioResponseDTO:
-        palabra = Vocabulario(palabra=dto.palabra, nivel=dto.nivel)
+        Vocabulario(palabra=dto.palabra,traduccion=dto.traduccion,nivel=dto.nivel,idioma_id=dto.idioma_id,)
         palabra = self.repository.crear(palabra)
         return to_vocabulario_response(palabra)
  
