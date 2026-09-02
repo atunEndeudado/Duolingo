@@ -7,10 +7,11 @@ import type {
   Insignia,
   Leccion,
   Nivel,
-  Pregunta, 
+  Pregunta,
   ProgresoCurso,
   SolicitudAmistad,
   Usuario,
+  Vocabulario,
 } from "./types";
 
 const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8000/api";
@@ -74,9 +75,41 @@ export function mapBackendLeccion(l: any): Leccion {
   };
 }
 
+export function mapBackendPregunta(p: any): Pregunta {
+  return {
+    id: asStringId(p.id),
+    leccion_id: asStringId(p.leccion_id),
+    orden: Number(p.orden ?? 1),
+    pregunta: String(p.pregunta ?? ""),
+    respuesta: String(p.respuesta ?? ""),
+    es_premium: Boolean(p.es_premium ?? false),
+    tipo: p.tipo ?? "traducir",
+    enunciado: String(p.enunciado ?? p.pregunta ?? ""),
+    premium: Boolean(p.es_premium ?? false)
+  };
+}
+
+export function mapBackendVocabulario(v: any): Vocabulario {
+  return {
+    id: asStringId(v.id),
+    palabra: String(v.palabra ?? ""),
+    traduccion: String(v.traduccion ?? ""),
+    nivel: v.nivel as Nivel,
+    idioma_id: asStringId(v.idioma_id),
+  };
+}
+
 export async function listarIdiomas(): Promise<Idioma[]> {
   const data = await request<any[]>("/idiomas");
   return (data ?? []).map(mapBackendIdioma);
+}
+
+export async function crearIdiomaBackend(body: { nombre: string; codigo: string }) {
+  const data = await request<any>(`/idiomas/`, {
+    method: "POST",
+    body: JSON.stringify({ nombre: body.nombre, codigo: body.codigo }),
+  });
+  return mapBackendIdioma(data);
 }
 
 export async function listarCursosPorIdioma(idiomaId: string): Promise<Curso[]> {
@@ -128,6 +161,17 @@ export async function obtenerUsuarioBackend(usuarioId: string) {
   return mapBackendUsuario(data);
 }
 
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  const token = localStorage.getItem("token"); // O "auth_token" / "jwt" según cómo lo guardes
+  
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+    ...options.headers,
+  };
+
+  return fetch(url, { ...options, headers });
+}
 export async function listarUsuariosBackend() {
   const data = await request<any[]>(`/usuarios/`);
   return (data ?? []).map(mapBackendUsuario);
@@ -641,4 +685,65 @@ export function actividad(db: DB, usuario_id: string, desde: string, hasta: stri
   }
 
   return [...mapa.values()];
+}
+
+/* ------------------------------------------------------------------ *
+ * Preguntas (Admin)
+ * POST /preguntas  { leccion_id, orden, pregunta, respuesta, es_premium }
+ * ------------------------------------------------------------------ */
+export async function crearPreguntaBackend(body: {
+  leccion_id: string;
+  orden: number;
+  pregunta: string;
+  respuesta: string;
+  es_premium: boolean;
+}) {
+  const data = await request<any>(`/preguntas/`, {
+    method: "POST",
+    body: JSON.stringify({
+      leccion_id: Number(body.leccion_id),
+      orden: body.orden,
+      pregunta: body.pregunta,
+      respuesta: body.respuesta,
+      es_premium: body.es_premium,
+    }),
+  });
+  return mapBackendPregunta(data);
+}
+
+export async function listarPreguntasPorLeccion(leccionId: string): Promise<Pregunta[]> {
+  const data = await request<any[]>(`/preguntas/leccion/${leccionId}`);
+  return (data ?? []).map(mapBackendPregunta);
+}
+
+/* ------------------------------------------------------------------ *
+ * Vocabulario (Admin)
+ * POST /vocabulario  { palabra, traduccion, nivel, idioma_id }
+ * GET  /vocabulario  ?idioma_id=1&nivel=A1
+ * ------------------------------------------------------------------ */
+export async function crearVocabularioBackend(body: {
+  palabra: string;
+  traduccion: string;
+  nivel: Nivel;
+  idioma_id: string;
+}) {
+  const data = await request<any>(`/vocabulario/`, {
+    method: "POST",
+    body: JSON.stringify({
+      palabra: body.palabra,
+      traduccion: body.traduccion,
+      nivel: body.nivel,
+      idioma_id: Number(body.idioma_id),
+    }),
+  });
+  return mapBackendVocabulario(data);
+}
+
+export async function listarVocabulario(idiomaId?: string, nivel?: Nivel): Promise<Vocabulario[]> {
+  const params = new URLSearchParams();
+  if (idiomaId) params.append("idioma_id", idiomaId);
+  if (nivel) params.append("nivel", nivel);
+  const query = params.toString();
+  const data = await request<any[]>(`/vocabulario${query ? "?" + query : ""}`);
+  return (data ?? []).map(mapBackendVocabulario);
 }

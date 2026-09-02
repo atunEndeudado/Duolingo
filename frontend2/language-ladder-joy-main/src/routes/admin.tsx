@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
@@ -13,6 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AgregarIdioma } from "@/components/AgregarIdioma";
+import { AgregarPreguntas } from "@/components/AgregarPreguntas";
+import { AgregarVocabulario } from "@/components/AgregarVocabulario";
 import type { Nivel } from "@/lib/types";
 
 export const Route = createFileRoute("/admin")({
@@ -34,6 +37,7 @@ export const Route = createFileRoute("/admin")({
 // HU3 — POST /cursos · POST /cursos/{id}/lecciones
 function Admin() {
   const { db, crearCurso, crearLeccion } = useApp();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [idiomaId, setIdiomaId] = useState(db.idiomas[0]?.id ?? "");
   const [nivel, setNivel] = useState<Nivel>("A1");
@@ -45,6 +49,15 @@ function Admin() {
 
   const lecciones = api.leccionesDeCurso(db, cursoId);
 
+  useEffect(() => {
+    if (!idiomaId && db.idiomas[0]) setIdiomaId(db.idiomas[0].id);
+    if (!cursoId && db.cursos[0]) setCursoId(db.cursos[0].id);
+  }, [db.idiomas, db.cursos, idiomaId, cursoId]);
+
+  const handleIdiomaCreado = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
+
   return (
     <div className="space-y-8">
       <header>
@@ -54,12 +67,16 @@ function Admin() {
         </p>
       </header>
 
+      <div key={refreshKey} className="grid gap-6 lg:grid-cols-3">
+        <AgregarIdioma onIdiomaCreado={handleIdiomaCreado} />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <form
           className="card-pop space-y-4 p-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            crearCurso({ idioma_id: idiomaId, nivel });
+            await crearCurso({ idioma_id: idiomaId, nivel });
           }}
         >
           <h2 className="text-xl">Nuevo curso</h2>
@@ -103,9 +120,9 @@ function Admin() {
 
         <form
           className="card-pop space-y-4 p-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (crearLeccion({ curso_id: cursoId, orden, titulo, xp_recompensa: xp })) {
+            if (await crearLeccion({ curso_id: cursoId, orden, titulo, xp_recompensa: xp })) {
               setTitulo("");
               setOrden(orden + 1);
             }
@@ -187,6 +204,11 @@ function Admin() {
             </ol>
           </div>
         </form>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AgregarPreguntas lecciones={lecciones} />
+        <AgregarVocabulario idiomas={db.idiomas} />
       </div>
     </div>
   );

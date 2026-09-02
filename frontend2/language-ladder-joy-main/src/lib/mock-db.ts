@@ -11,6 +11,7 @@ import type {
   Usuario,
   UsuarioCurso,
   UsuarioInsignia,
+  Vocabulario,
 } from "./types";
 
 export interface DB {
@@ -19,6 +20,7 @@ export interface DB {
   cursos: Curso[];
   lecciones: Leccion[];
   preguntas: Pregunta[];
+  vocabulario: Vocabulario[];
   progresos: Progreso[];
   insignias: Insignia[];
   usuario_cursos: UsuarioCurso[];
@@ -40,6 +42,7 @@ export const dbInicial: DB = {
   cursos: [],
   lecciones: [],
   preguntas: [],
+  vocabulario: [],
   progresos: [],
   insignias: [],
   usuario_cursos: [],

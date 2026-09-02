@@ -18,6 +18,20 @@ interface AppContextValue {
     titulo: string;
     xp_recompensa: number;
   }) => Promise<boolean>;
+      crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
+    crearVocabulario: (body: {
+      palabra: string;
+      traduccion: string;
+      nivel: Nivel;
+      idioma_id: string;
+    }) => Promise<boolean>;
+    crearPregunta: (body: {
+      leccion_id: string;
+      orden: number;
+      pregunta: string;
+      respuesta: string;
+      es_premium: boolean;
+    }) => Promise<boolean>;
   completarLeccion: (leccion_id: string, puntaje: number) => void;
   activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
@@ -49,21 +63,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const [idiomas, cursos] = await Promise.all([
-          api.listarIdiomas(),
-          Promise.all([
-            api.listarCursosPorIdioma("1"),
-            api.listarCursosPorIdioma("2"),
-            api.listarCursosPorIdioma("3"),
-          ])
-            .then((res) => res.flat())
-            .catch(() => []),
-        ]);
+        const idiomas = await api.listarIdiomas();
+        const cursos = (
+          await Promise.all(idiomas.map((idioma) => api.listarCursosPorIdioma(idioma.id)))
+        ).flat();
+        const lecciones = (
+          await Promise.all(cursos.map((curso) => api.listarLeccionesPorCurso(curso.id)))
+        ).flat();
 
         setDb((prev) => ({
           ...prev,
           idiomas,
           cursos,
+          lecciones,
         }));
       } catch {
         setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
@@ -159,6 +171,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const crearIdioma = useCallback(
+    async (body: { nombre: string; codigo: string }) => {
+      try {
+        const idioma = await api.crearIdiomaBackend(body);
+        setDb((prev) => ({
+          ...prev,
+          idiomas: [...prev.idiomas, idioma],
+        }));
+        toast.success("Idioma creado");
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo crear el idioma");
+        return false;
+      }
+    },
+    [],
+  );
+
   const completarLeccion = useCallback(
     (leccion_id: string, puntaje: number) => {
       if (!usuario) return;
@@ -244,6 +274,50 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (amigo_id: string) => {
       if (!usuario) return;
       setDb((prev) => api.eliminarAmigo(prev, usuario.id, amigo_id));
+      const crearVocabulario = useCallback(
+        async (body: {
+          palabra: string;
+          traduccion: string;
+          nivel: Nivel;
+          idioma_id: string;
+        }) => {
+          try {
+            const vocabulario = await api.crearVocabularioBackend(body);
+            setDb((prev) => ({
+              ...prev,
+              vocabulario: [...prev.vocabulario, vocabulario],
+            }));
+            return true;
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo agregar la palabra");
+            return false;
+          }
+        },
+        [],
+      );
+
+      const crearPregunta = useCallback(
+        async (body: {
+          leccion_id: string;
+          orden: number;
+          pregunta: string;
+          respuesta: string;
+          es_premium: boolean;
+        }) => {
+          try {
+            const pregunta = await api.crearPreguntaBackend(body);
+            setDb((prev) => ({
+              ...prev,
+              preguntas: [...prev.preguntas, pregunta],
+            }));
+            return true;
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "No se pudo agregar la pregunta");
+            return false;
+          }
+        },
+        [],
+      );
     },
     [usuario],
   );
@@ -255,6 +329,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     inscribirse,
     crearCurso,
     crearLeccion,
+      crearIdioma,
     completarLeccion,
     activarPremium,
     cancelarPremium,
@@ -262,6 +337,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     responderSolicitud,
     cancelarSolicitud,
     eliminarAmigo,
+    crearVocabulario,
+    crearPregunta,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

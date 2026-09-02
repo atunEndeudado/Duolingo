@@ -23,14 +23,6 @@ CREATE TABLE usuario (
     suscripcion_hasta      TIMESTAMP WITHOUT TIME ZONE -- AGREGADO: Fecha de vencimiento de suscripción Premium
 );
 
-CREATE TABLE vocabulario (
-    id      SERIAL PRIMARY KEY,
-    palabra VARCHAR(100) NOT NULL,
-    nivel   VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2'))
-);
- 
-CREATE INDEX idx_vocabulario_nivel ON vocabulario(nivel);
-
 -- ============================================================
 -- TABLA: idioma
 -- ============================================================
@@ -39,6 +31,16 @@ CREATE TABLE idioma (
     nombre  VARCHAR(100) NOT NULL UNIQUE,
     codigo  VARCHAR(10)  NOT NULL UNIQUE   -- ej: 'en', 'fr', 'pt-br'
 );
+
+CREATE TABLE vocabulario (
+    id          SERIAL PRIMARY KEY,
+    palabra     VARCHAR(100) NOT NULL,
+    traduccion  VARCHAR(100) NOT NULL,
+    nivel       VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
+    idioma_id   INTEGER NOT NULL REFERENCES idioma(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_vocabulario_nivel ON vocabulario(nivel);
 
 CREATE TABLE solicitud_amistad (
     id                  SERIAL PRIMARY KEY,
@@ -122,7 +124,7 @@ CREATE TABLE suscripcion (
     usuario_id          INTEGER NOT NULL REFERENCES usuario(id) ON DELETE CASCADE,
     payment_id          VARCHAR(100) UNIQUE, -- ID del pago enviado por Mercado Pago
     plan                VARCHAR(50) NOT NULL, 
-    monto               NUMERIC(10,2) NOT NULL,
+    monto               NUMERIC(10,2) NOT NULL
     estado              VARCHAR(50) NOT NULL DEFAULT 'aprobado',
     fecha_inicio        TIMESTAMP NOT NULL DEFAULT now(),
     fecha_fin           TIMESTAMP NOT NULL

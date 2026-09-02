@@ -33,6 +33,24 @@ export interface Leccion {
   xp_recompensa: number; // 5..50
 }
 
+export interface Pregunta {
+  id: string;
+  leccion_id: string;
+  orden: number;
+  pregunta: string;
+  respuesta: string;
+  es_premium: boolean;
+  tipo?: "traducir" | "unir_palabras" | "unir_oraciones";
+}
+
+export interface Vocabulario {
+  id: string;
+  palabra: string;
+  traduccion: string;
+  nivel: Nivel;
+  idioma_id: string;
+}
+
 export interface Progreso {
   id: string;
   usuario_id: string;
