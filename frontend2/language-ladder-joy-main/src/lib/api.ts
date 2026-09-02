@@ -7,7 +7,7 @@ import type {
   Insignia,
   Leccion,
   Nivel,
-  Pregunta,
+  Pregunta, 
   ProgresoCurso,
   SolicitudAmistad,
   Usuario,
