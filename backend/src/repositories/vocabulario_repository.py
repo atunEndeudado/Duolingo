@@ -21,7 +21,19 @@ class VocabularioRepository:
         return self.db.execute(
             select(Vocabulario).where(Vocabulario.nivel == nivel)
         ).scalars().all()
- 
+
+    def listar(self, idioma_id: int | None = None, nivel: str | None = None) -> list[Vocabulario]:
+        consulta = select(Vocabulario)
+
+        if idioma_id is not None:
+            consulta = consulta.where(Vocabulario.idioma_id == idioma_id)
+
+        if nivel is not None:
+            consulta = consulta.where(Vocabulario.nivel == nivel)
+
+        return self.db.execute(
+            consulta.order_by(Vocabulario.palabra)
+        ).scalars().all()
     def obtener_aleatorias_por_nivel(self, nivel: str, cantidad: int) -> list[Vocabulario]:
         return self.db.execute(
             select(Vocabulario)

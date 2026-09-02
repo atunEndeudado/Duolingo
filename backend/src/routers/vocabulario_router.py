@@ -12,6 +12,13 @@ router_vocabulario = APIRouter(prefix="/vocabulario", tags=["Vocabulario"])
 def get_vocabulario_service(db: Session = Depends(get_db)) -> VocabularioService:
     return VocabularioService(VocabularioRepository(db))
  
+@router_vocabulario.get("/", response_model=list[VocabularioResponseDTO])
+def listar_palabras(
+    idioma_id: int | None = None,
+    nivel: str | None = None,
+    service: VocabularioService = Depends(get_vocabulario_service),
+):
+    return service.listar_palabras(idioma_id, nivel)
  
 @router_vocabulario.post("/", response_model=VocabularioResponseDTO, status_code=201)
 def crear_palabra(dto: CreateVocabularioDTO, service: VocabularioService = Depends(get_vocabulario_service)):

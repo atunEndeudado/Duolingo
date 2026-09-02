@@ -17,7 +17,14 @@ class VocabularioService:
         ) 
         palabra = self.repository.crear(palabra)
         return to_vocabulario_response(palabra)
- 
+
+    def listar_palabras(
+        self,
+        idioma_id: int | None = None,
+        nivel: str | None = None,
+) -> list[VocabularioResponseDTO]:
+        palabras = self.repository.listar(idioma_id, nivel)
+        return [to_vocabulario_response(palabra) for palabra in palabras]
     def generar_opciones_multiple_choice(self, nivel: str, cantidad_incorrectas: int = 3) -> list[VocabularioResponseDTO]:
         palabras = self.repository.obtener_aleatorias_por_nivel(nivel, cantidad_incorrectas)
         return [to_vocabulario_response(p) for p in palabras]
