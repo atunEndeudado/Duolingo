@@ -19,7 +19,6 @@ interface AppContextValue {
     xp_recompensa: number;
   }) => Promise<boolean>;
   completarLeccion: (leccion_id: string, puntaje: number) => void;
-  activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
   enviarSolicitud: (amigo_id: string) => void;
   responderSolicitud: (solicitud_id: string, acepta: boolean) => void;
@@ -185,22 +184,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [usuario],
   );
 
-  const activarPremium = useCallback(
-    (plan: string) => {
-      if (!usuario) return;
-      setDb((prev) => {
-        const res = api.activarPremium(prev, usuario.id);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
-        toast.success(`Pago aprobado · plan ${plan}. ¡Preguntas Premium desbloqueadas!`);
-        return res.data.db;
-      });
-    },
-    [usuario],
-  );
-
   const cancelarPremium = useCallback(() => {
     if (!usuario) return;
     setDb((prev) => api.cancelarPremium(prev, usuario.id));
@@ -256,7 +239,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     crearCurso,
     crearLeccion,
     completarLeccion,
-    activarPremium,
     cancelarPremium,
     enviarSolicitud,
     responderSolicitud,
