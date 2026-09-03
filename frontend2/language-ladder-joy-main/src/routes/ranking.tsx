@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Clock, Flame, UserPlus, Zap, Crown, Trophy } from "lucide-react";
+import { Check, Clock, Flame, UserPlus, Zap, Crown, Trophy, UserRound } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
@@ -106,6 +106,12 @@ function Ranking() {
               }`}
             >
               {f.posicion}
+            </span>
+            <span
+              aria-hidden="true"
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-secondary text-sm font-extrabold text-secondary-foreground"
+            >
+              {f.nombre.charAt(0).toUpperCase() || <UserRound className="size-5" />}
             </span>
             <span className={`flex-1 truncate ${f.es_yo ? "font-extrabold" : "font-semibold"}`}>
               {f.nombre}
