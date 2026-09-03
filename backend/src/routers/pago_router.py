@@ -14,6 +14,8 @@ def get_pago_service(db: Session = Depends(get_db)) -> PagoService:
 def crear_preferencia(dto: CrearPagoDTO, service: PagoService = Depends(get_pago_service)):
     try:
         return service.crear_preferencia_suscripcion(dto.usuario_id, dto.email, dto.plan)
+    except HTTPException:
+        raise
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

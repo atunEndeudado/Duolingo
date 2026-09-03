@@ -28,3 +28,9 @@ class UsuarioService:
  
     def listar_usuarios(self, skip: int = 0, limit: int = 100) -> list[UsuarioResponseDTO]:
         return [to_usuario_response(u) for u in self.repository.listar(skip, limit)]
+
+    def buscar_usuarios(self, query: str, limit: int = 20) -> list[UsuarioResponseDTO]:
+        return [to_usuario_response(u) for u in self.repository.buscar(query, limit)]
+
+    def obtener_sugerencias(self, usuario_id: int, limit: int = 20) -> list[UsuarioResponseDTO]:
+        return [to_usuario_response(u) for u in self.repository.sugerencias(usuario_id, limit)]

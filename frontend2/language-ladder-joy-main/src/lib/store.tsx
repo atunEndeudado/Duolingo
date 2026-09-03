@@ -41,6 +41,8 @@ interface AppContextValue {
   responderSolicitud: (solicitud_id: string, acepta: boolean) => void;
   cancelarSolicitud: (solicitud_id: string) => void;
   eliminarAmigo: (amigo_id: string) => void;
+  buscarUsuarios: (query: string) => Promise<Usuario[]>;
+  obtenerSugerencias: (usuario_id: string) => Promise<Usuario[]>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -289,6 +291,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [usuario],
   );
 
+  const buscarUsuarios = useCallback((query: string) => api.buscarUsuariosBackend(query), []);
+
+  const obtenerSugerencias = useCallback(
+    (usuario_id: string) => api.obtenerSugerenciasBackend(usuario_id),
+    [],
+  );
+
   const crearVocabulario = useCallback(
     async (body: {
       palabra: string;
@@ -350,6 +359,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     responderSolicitud,
     cancelarSolicitud,
     eliminarAmigo,
+    buscarUsuarios,
+    obtenerSugerencias,
     crearVocabulario,
     crearPregunta,
     recargarDatos,

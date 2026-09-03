@@ -15,7 +15,7 @@ import type {
   DireccionPregunta,
 } from "./types";
 
-const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8010/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8010/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -202,6 +202,16 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 export async function listarUsuariosBackend() {
   const data = await request<any[]>(`/usuarios/`);
+  return (data ?? []).map(mapBackendUsuario);
+}
+
+export async function buscarUsuariosBackend(query: string): Promise<Usuario[]> {
+  const data = await request<any[]>(`/usuarios/buscar?q=${encodeURIComponent(query)}&limit=20`);
+  return (data ?? []).map(mapBackendUsuario);
+}
+
+export async function obtenerSugerenciasBackend(usuarioId: string): Promise<Usuario[]> {
+  const data = await request<any[]>(`/usuarios/sugerencias?usuario_id=${encodeURIComponent(usuarioId)}&limit=20`);
   return (data ?? []).map(mapBackendUsuario);
 }
 
@@ -636,11 +646,11 @@ export function ranking(db: DB, periodo: "global" | "semana", yo: string | null)
     .map((u) => ({
       usuario_id: u.id,
       nombre: u.nombre,
-      xp: periodo === "global" ? u.xp_total : xpEnUltimosDias(db, u.id, 7),
-      racha_dias: u.racha_dias,
+      xp: periodo === "global" ? (u.xp_total ?? 0) : xpEnUltimosDias(db, u.id, 7),
+      racha_dias: u.racha_dias ?? 0,
       es_yo: u.id === yo,
     }))
-    .sort((a, b) => b.xp - a.xp || b.racha_dias - a.racha_dias)
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.racha_dias || 0) - (a.racha_dias || 0))
     .slice(0, 50)
     .map((f, i) => ({ posicion: i + 1, ...f }));
 }
@@ -656,11 +666,11 @@ export function rankingAmigos(db: DB, usuario_id: string): { filas: FilaRanking[
     .map((u) => ({
       usuario_id: u.id,
       nombre: u.nombre,
-      xp: u.xp_total,
-      racha_dias: u.racha_dias,
+      xp: u.xp_total ?? 0,
+      racha_dias: u.racha_dias ?? 0,
       es_yo: u.id === usuario_id,
     }))
-    .sort((a, b) => b.xp - a.xp || b.racha_dias - a.racha_dias)
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.racha_dias || 0) - (a.racha_dias || 0))
     .map((f, i) => ({ posicion: i + 1, ...f }));
 
   return { filas, posicion: filas.find((f) => f.es_yo)?.posicion ?? 0 };
