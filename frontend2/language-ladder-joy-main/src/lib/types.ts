@@ -31,16 +31,7 @@ export interface Leccion {
   orden: number;
   titulo: string;
   xp_recompensa: number; // 5..50
-}
-
-export interface Pregunta {
-  id: string;
-  leccion_id: string;
-  orden: number;
-  pregunta: string;
-  respuesta: string;
-  es_premium: boolean;
-  tipo?: "traducir" | "unir_palabras" | "unir_oraciones";
+  bloqueada?: boolean;
 }
 
 export interface Vocabulario {
@@ -124,7 +115,8 @@ export interface DiaActividad {
  * - "match":     5 palabras a la izquierda y sus 5 traducciones desordenadas a la derecha
  * - "escritura": se escribe la traducción con el teclado
  */
-export type TipoPregunta = "opcion" | "match" | "escritura";
+export type TipoPregunta = "opcion" | "match" | "escritura" | "oracion";
+export type DireccionPregunta = "nativo_a_curso" | "curso_a_nativo";
 
 export interface ParMatch {
   es: string; // palabra en español
@@ -134,12 +126,17 @@ export interface ParMatch {
 export interface Pregunta {
   id: string;
   leccion_id: string;
+  orden: number;
   tipo: TipoPregunta;
+  direccion?: DireccionPregunta;
   enunciado: string;
-  opciones?: string[]; // tipo "opcion"
-  correcta?: number; // índice de la opción correcta (tipo "opcion")
-  pares?: ParMatch[]; // tipo "match"
-  respuesta?: string; // tipo "escritura"
+  pregunta: string;
+  es_premium: boolean;
+  opciones?: string[] | undefined; // tipo "opcion"
+  correcta?: number | undefined; // índice de la opción correcta (tipo "opcion")
+  pares?: ParMatch[] | undefined; // tipo "match"
+  respuesta?: string | undefined; // tipo "escritura"
+  palabras?: string[] | undefined; // tipo "oracion"
   premium: boolean; // solo disponible con suscripción Premium
 }
 

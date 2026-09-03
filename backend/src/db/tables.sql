@@ -85,6 +85,9 @@ CREATE TABLE preguntas (
     orden       INTEGER NOT NULL CHECK (orden > 0),
     pregunta    VARCHAR(200) NOT NULL,
     respuesta   VARCHAR(200) NOT NULL,
+    tipo        VARCHAR(30) NOT NULL DEFAULT 'traducir',
+    direccion   VARCHAR(30) NOT NULL DEFAULT 'nativo_a_curso'
+                CHECK (direccion IN ('nativo_a_curso', 'curso_a_nativo')),
     es_premium  BOOLEAN NOT NULL DEFAULT FALSE,
     UNIQUE (leccion_id, orden)
 );

@@ -19,13 +19,12 @@ class IdiomaRepository:
  
     def obtener_por_codigo(self, codigo: str) -> Idioma | None:
         return self.db.execute(
-            select(Idioma).where(Idioma.codigo == codigo)
+            select(Idioma).where(func.lower(Idioma.codigo) == codigo.strip().lower())
         ).scalar_one_or_none()
  
     def listar(self) -> list[Idioma]:
-        return self.db.execute(select(Idioma)).scalars().all()
+        return self.db.execute(select(Idioma).order_by(Idioma.nombre, Idioma.id)).scalars().all()
  
     def eliminar(self, idioma: Idioma) -> None:
         self.db.delete(idioma)
         self.db.commit()
- 

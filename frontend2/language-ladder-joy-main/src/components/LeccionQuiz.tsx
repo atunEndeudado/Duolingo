@@ -22,15 +22,18 @@ function normalizar(texto: string) {
     .trim()
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "");
 }
 
-/** Orden determinístico y "desordenado" de las traducciones del match. */
-function desordenar(pares: ParMatch[]) {
-  return pares
-    .map((p, i) => ({ p, k: (i * 7 + 3) % pares.length }))
-    .sort((a, b) => a.k - b.k)
-    .map((x) => x.p);
+/** Mezcla una columna sin mutar el arreglo original. */
+function mezclar<T>(items: T[]) {
+  const resultado = [...items];
+  for (let i = resultado.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [resultado[i], resultado[j]] = [resultado[j]!, resultado[i]!];
+  }
+  return resultado;
 }
 
 /**
@@ -56,6 +59,8 @@ export function LeccionQuiz({
   const [verificado, setVerificado] = useState(false);
   const [izq, setIzq] = useState<string | null>(null);
   const [uniones, setUniones] = useState<Record<string, string>>({});
+  const [paresResueltos, setParesResueltos] = useState<string[]>([]);
+  const [oracionIndices, setOracionIndices] = useState<number[]>([]);
 
   const pregunta = preguntas[indice];
   const total = preguntas.length;
@@ -64,27 +69,39 @@ export function LeccionQuiz({
     [correctas, total],
   );
   const pares = pregunta?.pares ?? [];
-  const derecha = useMemo(() => desordenar(pares), [pregunta?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Cada columna se mezcla por separado al cambiar de pregunta.
+  const derecha = useMemo(() => mezclar(pares), [pregunta?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const izquierda = useMemo(() => mezclar(pares), [pregunta?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bancoPalabras = useMemo(() => {
+    const palabras = (pregunta?.respuesta ?? "").split(/\s+/).filter(Boolean);
+    return mezclar(palabras.map((palabra, index) => ({ palabra, index })));
+  }, [pregunta?.id, pregunta?.respuesta]);
 
   if (!pregunta) {
     return <p className="text-sm text-muted-foreground">Esta lección todavía no tiene preguntas.</p>;
   }
 
+  const respuestaCorrecta = pregunta.respuesta ?? "";
 
 
   const acierto =
     pregunta.tipo === "opcion"
-      ? elegida === pregunta.correcta
-      : pregunta.tipo === "escritura"
-        ? normalizar(texto) === normalizar(pregunta.respuesta ?? "")
-        : pares.length > 0 && pares.every((p) => uniones[p.es] === p.tr);
+      ? normalizar((pregunta.opciones ?? [])[elegida ?? -1] ?? "") === normalizar(respuestaCorrecta)
+      : pregunta.tipo === "escritura" || pregunta.tipo === "traducir"
+        ? normalizar(texto) === normalizar(respuestaCorrecta)
+        : pregunta.tipo === "oracion"
+          ? normalizar(oracionIndices.map((index) => bancoPalabras.find((item) => item.index === index)?.palabra ?? "").join(" ")) ===
+            normalizar(respuestaCorrecta)
+          : pares.length > 0 && pares.every((par) => normalizar(uniones[par.es] ?? "") === normalizar(par.tr));
 
   const respondida =
     pregunta.tipo === "opcion"
       ? elegida !== null
-      : pregunta.tipo === "escritura"
+      : pregunta.tipo === "escritura" || pregunta.tipo === "traducir"
         ? verificado
-        : Object.keys(uniones).length === pares.length;
+        : pregunta.tipo === "oracion"
+          ? oracionIndices.length === (pregunta.palabras?.length ?? 0)
+          : paresResueltos.length === pares.length;
 
   function siguiente() {
     if (acierto) setCorrectas((c) => c + 1);
@@ -93,17 +110,25 @@ export function LeccionQuiz({
     setVerificado(false);
     setIzq(null);
     setUniones({});
+    setParesResueltos([]);
+    setOracionIndices([]);
     if (indice + 1 < total) setIndice(indice + 1);
     else setTerminado(true);
   }
 
   function tocarDerecha(tr: string) {
     if (!izq) return;
-    setUniones((prev) => {
-      const limpio = Object.fromEntries(Object.entries(prev).filter(([, v]) => v !== tr));
-      return { ...limpio, [izq]: tr };
-    });
+    const par = pares.find((item) => item.es === izq);
+    if (!par) return;
+    if (par.tr === tr) {
+      setUniones((prev) => ({ ...prev, [izq]: tr }));
+      setParesResueltos((prev) => [...prev, izq]);
+    }
     setIzq(null);
+  }
+
+  function elegirPalabra(index: number) {
+    setOracionIndices((actual) => [...actual, index]);
   }
 
   if (terminado) {
@@ -139,9 +164,20 @@ export function LeccionQuiz({
   const etiquetaTipo =
     pregunta.tipo === "opcion"
       ? "Multiple choice"
-      : pregunta.tipo === "match"
+      : pregunta.tipo === "match" || pregunta.tipo === "unir_palabras"
         ? "Unir columnas"
-        : "Escribir la traducción";
+        : pregunta.tipo === "oracion"
+          ? "Formar oración"
+          : "Escribir la traducción";
+
+  const tituloEjercicio =
+    pregunta.tipo === "escritura" || pregunta.tipo === "traducir"
+      ? "Traduce la siguiente frase:"
+      : pregunta.tipo === "match" || pregunta.tipo === "unir_palabras"
+        ? "Une cada palabra con su traducción:"
+        : pregunta.tipo === "oracion"
+          ? "Forma la oración correcta:"
+          : "Selecciona la respuesta correcta:";
 
   return (
     <div className="space-y-4">
@@ -156,7 +192,8 @@ export function LeccionQuiz({
         <Progress value={(indice / total) * 100} className="mt-2" />
       </div>
 
-      <h3 className="text-display text-xl font-extrabold">{pregunta.enunciado}</h3>
+      <h3 className="text-display text-xl font-extrabold">{tituloEjercicio}</h3>
+      <p className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm font-semibold">{pregunta.pregunta}</p>
 
       {pregunta.tipo === "opcion" ? (
         <div className="grid gap-2">
@@ -189,7 +226,7 @@ export function LeccionQuiz({
         </div>
       ) : null}
 
-      {pregunta.tipo === "escritura" ? (
+      {pregunta.tipo === "escritura" || pregunta.tipo === "traducir" ? (
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -212,25 +249,23 @@ export function LeccionQuiz({
         </form>
       ) : null}
 
-      {pregunta.tipo === "match" ? (
+      {pregunta.tipo === "match" || pregunta.tipo === "unir_palabras" ? (
         <div className="grid grid-cols-2 gap-3">
           <ul className="space-y-2">
-            {pares.map((p) => {
+            {izquierda.map((p) => {
               const unida = uniones[p.es];
-              const ok = respondida ? unida === p.tr : null;
+              const resuelta = paresResueltos.includes(p.es);
               return (
                 <li key={p.es}>
                   <button
                     type="button"
-                    disabled={respondida}
+                    disabled={resuelta}
                     onClick={() => setIzq(izq === p.es ? null : p.es)}
                     className={`w-full rounded-2xl border-2 px-3 py-3 text-left text-sm font-bold transition-colors ${
                       izq === p.es
                         ? "border-primary bg-primary/10"
-                        : ok === false
-                          ? "border-destructive bg-destructive/10"
-                          : ok === true
-                            ? "border-primary bg-primary/10"
+                        : resuelta
+                          ? "border-primary bg-primary/10 opacity-60"
                             : "border-border hover:bg-secondary"
                     }`}
                   >
@@ -247,12 +282,12 @@ export function LeccionQuiz({
           </ul>
           <ul className="space-y-2">
             {derecha.map((p) => {
-              const usada = Object.values(uniones).includes(p.tr);
+              const usada = paresResueltos.some((es) => pares.find((par) => par.es === es)?.tr === p.tr);
               return (
                 <li key={p.tr}>
                   <button
                     type="button"
-                    disabled={respondida}
+                    disabled={!izq || usada}
                     onClick={() => tocarDerecha(p.tr)}
                     className={`w-full rounded-2xl border-2 px-3 py-3 text-left text-sm font-bold transition-colors ${
                       usada ? "border-border opacity-50" : "border-border hover:bg-secondary"
@@ -267,7 +302,41 @@ export function LeccionQuiz({
         </div>
       ) : null}
 
-      {pregunta.tipo === "match" && !respondida ? (
+      {pregunta.tipo === "oracion" ? (
+        <div className="space-y-4">
+          <div className="min-h-14 rounded-2xl border-2 border-dashed border-border p-3">
+            {oracionIndices.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {oracionIndices.map((wordIndex, index) => (
+                  <span key={`${wordIndex}-${index}`} className="rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold">
+                  {bancoPalabras.find((item) => item.index === wordIndex)?.palabra}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-muted-foreground">Elegí las palabras para formar la oración</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {bancoPalabras.map(({ palabra, index }) => {
+              const usada = oracionIndices.includes(index);
+              return (
+                <Button
+                  key={`${palabra}-${index}`}
+                  type="button"
+                  variant="outline"
+                  disabled={usada || respondida}
+                  onClick={() => elegirPalabra(index)}
+                >
+                  {palabra}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {(pregunta.tipo === "match" || pregunta.tipo === "unir_palabras") && !respondida ? (
         <p className="text-xs text-muted-foreground">
           Tocá una palabra de la izquierda y después su traducción a la derecha.
         </p>
@@ -279,8 +348,8 @@ export function LeccionQuiz({
             ? "¡Correcto!"
             : pregunta.tipo === "opcion"
               ? `La respuesta era "${(pregunta.opciones ?? [])[pregunta.correcta ?? 0]}"`
-              : pregunta.tipo === "escritura"
-                ? `La respuesta era "${pregunta.respuesta}"`
+              : pregunta.tipo === "escritura" || pregunta.tipo === "traducir"
+                ? `La respuesta era "${respuestaCorrecta}"`
                 : "Hay uniones incorrectas."}
         </p>
       ) : null}

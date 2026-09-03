@@ -18,4 +18,4 @@ class LeccionResponseDTO(BaseModel):
     orden: int
     titulo: str
     xp_recompensa: int
- 
+    bloqueada: bool = False

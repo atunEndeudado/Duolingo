@@ -11,7 +11,7 @@ class IdiomaService:
     def crear_idioma(self, dto: CreateIdiomaDTO) -> IdiomaResponseDTO:
         if self.repository.obtener_por_codigo(dto.codigo):
             raise ValueError(f"Ya existe un idioma con código '{dto.codigo}'")
-        idioma = Idioma(nombre=dto.nombre, codigo=dto.codigo)
+        idioma = Idioma(nombre=dto.nombre.strip(), codigo=dto.codigo.strip().lower())
         idioma = self.repository.crear(idioma)
         return to_idioma_response(idioma)
  

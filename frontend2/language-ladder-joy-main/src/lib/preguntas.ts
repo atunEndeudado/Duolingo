@@ -96,7 +96,7 @@ const SECUENCIA: TipoPregunta[] = [
   "opcion",
   "escritura",
   "match",
-  "opcion",
+  "oracion",
   "escritura",
   "opcion",
   "match",
@@ -140,6 +140,16 @@ export function generarPreguntas(leccion: Leccion, codigoIdioma: string): Pregun
         ...base,
         enunciado: "Uní cada palabra con su traducción",
         pares: unicos,
+      } satisfies Pregunta;
+    }
+
+    if (tipo === "oracion") {
+      const palabras = par[1].split(/\s+/).filter(Boolean);
+      return {
+        ...base,
+        enunciado: `Formá la traducción de "${par[0]}"`,
+        respuesta: par[1],
+        palabras,
       } satisfies Pregunta;
     }
 

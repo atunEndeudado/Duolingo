@@ -4,11 +4,13 @@ class CreatePreguntaDTO(BaseModel):
     # Identificador de la lección a la que pertenece
     leccion_id: int
     # Número que indica el orden de la pregunta dentro de la lección
-    orden: int
+    orden: int | None = None
     # Texto de la pregunta que se mostrará al usuario
     pregunta: str
     # Respuesta correcta asociada a la pregunta.
-    respuesta: str
+    respuesta: str | None = None
+    tipo: str = "traducir"
+    direccion: str = "nativo_a_curso"
     # Indica si la pregunta requiere una cuenta premium.
     # Por defecto, la pregunta no es exclusiva para usuarios premium.
     es_premium: bool = False
@@ -21,5 +23,6 @@ class PreguntaResponseDTO(BaseModel):
     orden: int
     pregunta: str
     respuesta: str
+    tipo: str = "traducir"
+    direccion: str = "nativo_a_curso"
     es_premium: bool
- 

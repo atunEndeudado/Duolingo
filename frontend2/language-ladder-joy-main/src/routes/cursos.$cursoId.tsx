@@ -93,7 +93,7 @@ function CursoDetalle() {
       <ol className="space-y-3">
         {lecciones.map((l) => {
           const completada = usuario ? api.leccionCompletada(db, usuario.id, l.id) : false;
-          const desbloqueada = usuario ? inscripto && api.puedeIniciar(db, usuario.id, l) : false;
+          const desbloqueada = usuario ? !l.bloqueada : false;
           const intentos = db.progresos.filter(
             (p) => p.usuario_id === usuario?.id && p.leccion_id === l.id,
           );
@@ -171,9 +171,8 @@ function CursoDetalle() {
               }
               esPremium={Boolean(usuario?.premium)}
               onCerrar={() => setAbierta(null)}
-              onFinalizar={(p) => {
-                completarLeccion(abierta.id, p);
-                setAbierta(null);
+              onFinalizar={async (p) => {
+                if (await completarLeccion(abierta.id, p)) setAbierta(null);
               }}
             />
           ) : null}

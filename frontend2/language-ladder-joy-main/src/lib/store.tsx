@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AuthService } from "@/services/authService";
 import * as api from "./api";
 import { dbInicial, type DB } from "./mock-db";
-import type { Nivel, Usuario } from "./types";
+import type { DireccionPregunta, Nivel, Usuario } from "./types";
 
 interface AppContextValue {
   db: DB;
@@ -27,12 +27,14 @@ interface AppContextValue {
   }) => Promise<boolean>;
   crearPregunta: (body: {
     leccion_id: string;
-    orden: number;
     pregunta: string;
-    respuesta: string;
+    respuesta?: string;
+    tipo: "traducir" | "unir_palabras" | "unir_oraciones";
+    direccion: DireccionPregunta;
     es_premium: boolean;
   }) => Promise<boolean>;
-  completarLeccion: (leccion_id: string, puntaje: number) => void;
+  recargarDatos: (usuarioId?: string) => Promise<void>;
+  completarLeccion: (leccion_id: string, puntaje: number) => Promise<boolean>;
   activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
   enviarSolicitud: (amigo_id: string) => void;
@@ -60,30 +62,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(dbInicial);
   const token = AuthService.getToken();
 
-  useEffect(() => {
-    const cargarDatos = async () => {
+  const recargarDatos = useCallback(async (usuarioId?: string) => {
+    const idiomas = await api.listarIdiomas();
+    const idiomasUnicos = [...new Map(idiomas.map((idioma) => [idioma.codigo.toLowerCase(), idioma])).values()];
+    const cursos = (await Promise.all(idiomasUnicos.map((idioma) => api.listarCursosPorIdioma(idioma.id)))).flat();
+    const cursosUnicos = [...new Map(cursos.map((curso) => [curso.id, curso])).values()];
+    const lecciones = (
+      await Promise.all(cursosUnicos.map((curso) => api.listarLeccionesPorCurso(curso.id, usuarioId)))
+    ).flat();
+    const leccionesUnicas = [...new Map(lecciones.map((leccion) => [leccion.id, leccion])).values()];
+    let perfil: Usuario | null = null;
+    let progresos = [] as DB["progresos"];
+    if (usuarioId) {
       try {
-        const idiomas = await api.listarIdiomas();
-        const cursos = (
-          await Promise.all(idiomas.map((idioma) => api.listarCursosPorIdioma(idioma.id)))
-        ).flat();
-        const lecciones = (
-          await Promise.all(cursos.map((curso) => api.listarLeccionesPorCurso(curso.id)))
-        ).flat();
-
-        setDb((prev) => ({
-          ...prev,
-          idiomas,
-          cursos,
-          lecciones,
-        }));
+        [perfil, progresos] = await Promise.all([
+          api.obtenerUsuarioBackend(usuarioId),
+          api.listarProgresoPorUsuario(usuarioId),
+        ]);
       } catch {
-        setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
+        // El catálogo no depende de que el perfil esté disponible en este momento.
       }
-    };
+    }
 
-    void cargarDatos();
+    setDb((prev) => ({
+      ...prev,
+      idiomas: idiomasUnicos,
+      cursos: cursosUnicos,
+      lecciones: leccionesUnicas,
+      progresos,
+      usuarios: perfil ? [...prev.usuarios.filter((item) => item.id !== perfil.id), perfil] : prev.usuarios,
+      usuario_actual: perfil?.id ?? prev.usuario_actual,
+    }));
   }, []);
+
+  useEffect(() => {
+    const usuarioId = decodeJwtPayload(token ?? "")?.sub;
+    void recargarDatos(usuarioId).catch(() => {
+        setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
+    });
+  }, [recargarDatos, token]);
 
   const usuario = useMemo(() => {
     const usuarioDb = db.usuarios.find((u) => u.id === db.usuario_actual) ?? null;
@@ -175,10 +192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (body: { nombre: string; codigo: string }) => {
       try {
         const idioma = await api.crearIdiomaBackend(body);
-        setDb((prev) => ({
-          ...prev,
-          idiomas: [...prev.idiomas, idioma],
-        }));
+        await recargarDatos();
         toast.success("Idioma creado");
         return true;
       } catch (error) {
@@ -186,33 +200,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [],
+    [recargarDatos],
   );
 
   const completarLeccion = useCallback(
-    (leccion_id: string, puntaje: number) => {
-      if (!usuario) return;
-      setDb((prev) => {
-        const res = api.completarLeccion(prev, usuario.id, leccion_id, puntaje);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
-        const { completada, xp_ganado, insignias_nuevas } = res.data;
-        if (completada) {
-          toast.success(
-            xp_ganado > 0 ? `¡Lección completada! +${xp_ganado} XP` : "¡Lección completada de nuevo!",
-          );
-        } else {
-          toast.error(`Puntaje ${puntaje}: necesitás 60 para aprobar. Podés reintentar.`);
-        }
-        for (const i of insignias_nuevas) {
-          toast.success(`${i.icono} Insignia desbloqueada: ${i.nombre}`);
-        }
-        return res.data.db;
-      });
+    async (leccion_id: string, puntaje: number) => {
+      if (!usuario) return false;
+      try {
+        await api.registrarProgresoBackend({
+          usuario_id: usuario.id,
+          leccion_id,
+          puntaje,
+          completada: puntaje >= 60,
+        });
+        await recargarDatos(usuario.id);
+        toast.success(
+          puntaje >= 60 ? "¡Lección completada!" : `Puntaje ${puntaje}: necesitás 60 para aprobar.`,
+        );
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo guardar el progreso");
+        return false;
+      }
     },
-    [usuario],
+    [recargarDatos, usuario],
   );
 
   const activarPremium = useCallback(
@@ -303,9 +314,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const crearPregunta = useCallback(
     async (body: {
       leccion_id: string;
-      orden: number;
       pregunta: string;
-      respuesta: string;
+      respuesta?: string;
+      tipo: "traducir" | "unir_palabras" | "unir_oraciones";
+      direccion: DireccionPregunta;
       es_premium: boolean;
     }) => {
       try {
@@ -340,6 +352,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     eliminarAmigo,
     crearVocabulario,
     crearPregunta,
+    recargarDatos,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

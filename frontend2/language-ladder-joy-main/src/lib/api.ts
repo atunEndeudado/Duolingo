@@ -12,9 +12,10 @@ import type {
   SolicitudAmistad,
   Usuario,
   Vocabulario,
+  DireccionPregunta,
 } from "./types";
 
-const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8000/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8010/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -72,19 +73,45 @@ export function mapBackendLeccion(l: any): Leccion {
     orden: Number(l.orden ?? 1),
     titulo: String(l.titulo ?? ""),
     xp_recompensa: Number(l.xp_recompensa ?? 0),
+    bloqueada: Boolean(l.bloqueada ?? false),
+  };
+}
+
+export function mapBackendProgreso(p: any): Progreso {
+  return {
+    id: asStringId(p.id),
+    usuario_id: asStringId(p.usuario_id),
+    leccion_id: asStringId(p.leccion_id),
+    puntaje: Number(p.puntaje ?? 0),
+    completada: Boolean(p.completada),
+    fecha: String(p.fecha ?? ""),
   };
 }
 
 export function mapBackendPregunta(p: any): Pregunta {
+  const tipoBackend = String(p.tipo ?? "traducir");
+  const direccion = (p.direccion === "curso_a_nativo" ? "curso_a_nativo" : "nativo_a_curso") as DireccionPregunta;
+  const respuesta = String(p.respuesta ?? "");
+  const pregunta = String(p.pregunta ?? "");
+  const separar = (texto: string) => texto.split(/[,;|\n]+/).map((item) => item.trim()).filter(Boolean);
+  const palabrasPregunta = separar(pregunta);
+  const palabrasRespuesta = separar(respuesta);
+  const paresGenerados = tipoBackend === "unir_palabras" && palabrasPregunta.length === palabrasRespuesta.length
+    ? palabrasPregunta.map((es, index) => ({ es, tr: palabrasRespuesta[index]! }))
+    : undefined;
+  const palabrasGeneradas = tipoBackend === "unir_oraciones" ? respuesta.split(/\s+/).filter(Boolean) : undefined;
   return {
     id: asStringId(p.id),
     leccion_id: asStringId(p.leccion_id),
     orden: Number(p.orden ?? 1),
-    pregunta: String(p.pregunta ?? ""),
-    respuesta: String(p.respuesta ?? ""),
+    pregunta,
+    respuesta,
     es_premium: Boolean(p.es_premium ?? false),
-    tipo: p.tipo ?? "traducir",
-    enunciado: String(p.enunciado ?? p.pregunta ?? ""),
+    tipo: tipoBackend === "traducir" ? "escritura" : tipoBackend === "unir_oraciones" ? "oracion" : "match",
+    direccion,
+    enunciado: String(p.enunciado ?? pregunta),
+    ...(paresGenerados ? { pares: paresGenerados } : {}),
+    ...(palabrasGeneradas ? { palabras: palabrasGeneradas } : {}),
     premium: Boolean(p.es_premium ?? false)
   };
 }
@@ -117,8 +144,9 @@ export async function listarCursosPorIdioma(idiomaId: string): Promise<Curso[]> 
   return (data ?? []).map(mapBackendCurso);
 }
 
-export async function listarLeccionesPorCurso(cursoId: string): Promise<Leccion[]> {
-  const data = await request<any[]>(`/lecciones/curso/${cursoId}`);
+export async function listarLeccionesPorCurso(cursoId: string, usuarioId?: string): Promise<Leccion[]> {
+  const query = usuarioId ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
+  const data = await request<any[]>(`/lecciones/curso/${cursoId}${query}`);
   return (data ?? []).map(mapBackendLeccion);
 }
 
@@ -184,7 +212,7 @@ export async function listarUsuariosBackend() {
  * endpoint REST que le corresponde, listo para reemplazar la implementación mock
  * por un `fetch` real.
  *
- * const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+ * const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8010";
  */
 
 export const NIVELES: Nivel[] = ["A1", "A2", "B1", "B2", "C1"];
@@ -693,27 +721,59 @@ export function actividad(db: DB, usuario_id: string, desde: string, hasta: stri
  * ------------------------------------------------------------------ */
 export async function crearPreguntaBackend(body: {
   leccion_id: string;
-  orden: number;
   pregunta: string;
-  respuesta: string;
+  respuesta?: string;
+  tipo: "traducir" | "unir_palabras" | "unir_oraciones";
+  direccion: DireccionPregunta;
   es_premium: boolean;
 }) {
   const data = await request<any>(`/preguntas/`, {
     method: "POST",
     body: JSON.stringify({
       leccion_id: Number(body.leccion_id),
-      orden: body.orden,
       pregunta: body.pregunta,
-      respuesta: body.respuesta,
+      tipo: body.tipo,
+      direccion: body.direccion,
+      ...(body.respuesta ? { respuesta: body.respuesta } : {}),
       es_premium: body.es_premium,
     }),
   });
   return mapBackendPregunta(data);
 }
 
+export async function eliminarPreguntaBackend(preguntaId: string): Promise<void> {
+  await request<void>(`/preguntas/${preguntaId}`, { method: "DELETE" });
+}
+
 export async function listarPreguntasPorLeccion(leccionId: string): Promise<Pregunta[]> {
   const data = await request<any[]>(`/preguntas/leccion/${leccionId}`);
   return (data ?? []).map(mapBackendPregunta);
+}
+
+export async function registrarProgresoBackend(body: {
+  usuario_id: string;
+  leccion_id: string;
+  puntaje: number;
+  completada: boolean;
+}) {
+  return request<any>("/progreso/", {
+    method: "POST",
+    body: JSON.stringify({
+      usuario_id: Number(body.usuario_id),
+      leccion_id: Number(body.leccion_id),
+      puntaje: body.puntaje,
+      completada: body.completada,
+    }),
+  });
+}
+
+export async function eliminarLeccionBackend(leccionId: string): Promise<void> {
+  await request<void>(`/lecciones/${leccionId}`, { method: "DELETE" });
+}
+
+export async function listarProgresoPorUsuario(usuarioId: string): Promise<Progreso[]> {
+  const data = await request<any[]>(`/progreso/usuario/${usuarioId}`);
+  return (data ?? []).map(mapBackendProgreso);
 }
 
 /* ------------------------------------------------------------------ *
