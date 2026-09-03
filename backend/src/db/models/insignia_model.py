@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String
 
 from src.db.connection import Base
 
@@ -13,5 +12,5 @@ class Insignia(Base):
     nombre = Column(String, nullable=False)
     # Descripción de la insignia y del logro obtenido.
     descripcion = Column(String, nullable=False)
-    # Criterio que debe cumplirse para obtener la insignia.
-    criterio = Column(String, nullable=False)
+    criterio_variable = Column(String, nullable=False)
+    criterio_valor = Column(Integer, nullable=False)

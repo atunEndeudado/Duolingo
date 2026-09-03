@@ -36,7 +36,15 @@ export const Route = createFileRoute("/admin")({
 
 // HU3 — POST /cursos · POST /cursos/{id}/lecciones
 function Admin() {
-  const { db, crearCurso, crearLeccion, eliminarCurso, eliminarLeccion } = useApp();
+  const {
+    db,
+    crearCurso,
+    crearLeccion,
+    eliminarCurso,
+    eliminarLeccion,
+    crearInsignia,
+    eliminarInsignia,
+  } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [idiomaId, setIdiomaId] = useState(db.idiomas[0]?.id ?? "");
@@ -46,6 +54,10 @@ function Admin() {
   const [titulo, setTitulo] = useState("");
   const [orden, setOrden] = useState(1);
   const [xp, setXp] = useState(10);
+  const [insigniaNombre, setInsigniaNombre] = useState("");
+  const [insigniaDescripcion, setInsigniaDescripcion] = useState("");
+  const [insigniaVariable, setInsigniaVariable] = useState<"racha" | "cantidad_amigos" | "xp_total" | "xp_dia">("xp_total");
+  const [insigniaValor, setInsigniaValor] = useState(100);
 
   const lecciones = api.leccionesDeCurso(db, cursoId);
 
@@ -92,6 +104,78 @@ function Admin() {
       <div key={refreshKey} className="grid gap-6 lg:grid-cols-3">
         <AgregarIdioma onIdiomaCreado={handleIdiomaCreado} />
       </div>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <form
+          className="card-pop space-y-4 p-6"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (await crearInsignia({
+              nombre: insigniaNombre,
+              descripcion: insigniaDescripcion,
+              variable: insigniaVariable,
+              valor: insigniaValor,
+            })) {
+              setInsigniaNombre("");
+              setInsigniaDescripcion("");
+              setInsigniaValor(100);
+            }
+          }}
+        >
+          <h2 className="text-xl">Nueva insignia</h2>
+
+          <div className="space-y-2">
+            <Label htmlFor="insignia-nombre">Título</Label>
+            <Input id="insignia-nombre" value={insigniaNombre} onChange={(e) => setInsigniaNombre(e.target.value)} required />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="insignia-descripcion">Descripción</Label>
+            <Input id="insignia-descripcion" value={insigniaDescripcion} onChange={(e) => setInsigniaDescripcion(e.target.value)} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Variable</Label>
+              <Select value={insigniaVariable} onValueChange={(value) => setInsigniaVariable(value as typeof insigniaVariable)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="racha">Racha</SelectItem>
+                  <SelectItem value="cantidad_amigos">Cantidad de amigos</SelectItem>
+                  <SelectItem value="xp_total">XP total</SelectItem>
+                  <SelectItem value="xp_dia">XP ganada en un día</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="insignia-valor">Valor objetivo</Label>
+              <Input id="insignia-valor" type="number" min={1} value={insigniaValor} onChange={(e) => setInsigniaValor(Number(e.target.value))} required />
+            </div>
+          </div>
+
+          <Button type="submit" className="shadow-pop">Crear insignia</Button>
+        </form>
+
+        <div className="card-pop p-6">
+          <h2 className="text-xl">Insignias existentes</h2>
+          <ul className="mt-4 space-y-3">
+            {db.insignias.map((insignia) => (
+              <li key={insignia.id} className="flex items-center justify-between gap-3 border-b pb-3 last:border-0">
+                <div className="min-w-0">
+                  <p className="font-semibold">{insignia.icono} {insignia.nombre}</p>
+                  <p className="text-sm text-muted-foreground">{insignia.descripcion || "Sin descripción"}</p>
+                </div>
+                <Button type="button" variant="destructive" size="sm" onClick={() => {
+                  if (window.confirm(`¿Eliminar la insignia "${insignia.nombre}"?`)) void eliminarInsignia(insignia.id);
+                }}>
+                  Borrar
+                </Button>
+              </li>
+            ))}
+            {db.insignias.length === 0 ? <li className="text-sm text-muted-foreground">No hay insignias creadas.</li> : null}
+          </ul>
+        </div>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <form

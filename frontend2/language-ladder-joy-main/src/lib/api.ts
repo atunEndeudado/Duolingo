@@ -77,6 +77,23 @@ export function mapBackendLeccion(l: any): Leccion {
   };
 }
 
+export function mapBackendInsignia(i: any): Insignia {
+  return {
+    id: asStringId(i.id),
+    nombre: String(i.nombre ?? ""),
+    descripcion: String(i.descripcion ?? ""),
+    icono: String(i.icono ?? "🏅"),
+  };
+}
+
+export function mapBackendUsuarioInsignia(i: any) {
+  return {
+    usuario_id: asStringId(i.usuario_id),
+    insignia_id: asStringId(i.insignia_id),
+    fecha: String(i.fecha ?? ""),
+  };
+}
+
 export function mapBackendProgreso(p: any): Progreso {
   return {
     id: asStringId(p.id),
@@ -148,6 +165,37 @@ export async function listarLeccionesPorCurso(cursoId: string, usuarioId?: strin
   const query = usuarioId ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
   const data = await request<any[]>(`/lecciones/curso/${cursoId}${query}`);
   return (data ?? []).map(mapBackendLeccion);
+}
+
+export async function listarInsigniasBackend(): Promise<Insignia[]> {
+  const data = await request<any[]>("/insignias/");
+  return (data ?? []).map(mapBackendInsignia);
+}
+
+export async function crearInsigniaBackend(body: {
+  nombre: string;
+  descripcion?: string;
+  variable: "racha" | "cantidad_amigos" | "xp_total" | "xp_dia";
+  valor: number;
+}) {
+  const data = await request<any>("/insignias/", {
+    method: "POST",
+    body: JSON.stringify({
+      nombre: body.nombre,
+      descripcion: body.descripcion || null,
+      criterio: { variable: body.variable, valor: body.valor },
+    }),
+  });
+  return mapBackendInsignia(data);
+}
+
+export async function eliminarInsignia(insigniaId: string): Promise<void> {
+  await request<void>(`/insignias/${insigniaId}`, { method: "DELETE" });
+}
+
+export async function listarInsigniasUsuarioBackend(usuarioId: string) {
+  const data = await request<any[]>(`/usuario-insignias/usuario/${usuarioId}`);
+  return (data ?? []).map(mapBackendUsuarioInsignia);
 }
 
 export async function crearUsuarioBackend(body: { email: string; nombre: string; password: string }) {
@@ -476,11 +524,22 @@ export function cancelarPremium(db: DB, usuario_id: string): DB {
  * ------------------------------------------------------------------ */
 export function cumpleCriterio(db: DB, usuario_id: string, insignia: Insignia): boolean {
   const u = db.usuarios.find((x) => x.id === usuario_id);
-  if (!u) return false;
+  if (!u || !insignia.criterio) return false;
   const { criterio } = insignia;
-  if (criterio.tipo === "xp") return u.xp_total >= criterio.valor;
-  if (criterio.tipo === "racha") return u.racha_dias >= criterio.valor;
-  return totalLeccionesCompletadas(db, usuario_id) >= criterio.valor;
+  if (criterio.variable === "xp_total") return u.xp_total >= criterio.valor;
+  if (criterio.variable === "racha") return u.racha_dias >= criterio.valor;
+  if (criterio.variable === "cantidad_amigos") {
+    return new Set(
+      db.amigos
+        .filter((a) => a.usuario_a === usuario_id || a.usuario_b === usuario_id)
+        .map((a) => (a.usuario_a === usuario_id ? a.usuario_b : a.usuario_a)),
+    ).size >= criterio.valor;
+  }
+  const hoy = diaISO(new Date());
+  const xpDia = db.progresos
+    .filter((p) => p.usuario_id === usuario_id && p.completada && diaISO(new Date(p.fecha)) === hoy)
+    .reduce((total, p) => total + (db.lecciones.find((l) => l.id === p.leccion_id)?.xp_recompensa ?? 0), 0);
+  return xpDia >= criterio.valor;
 }
 
 export function totalLeccionesCompletadas(db: DB, usuario_id: string): number {
@@ -497,6 +556,7 @@ function evaluarInsignias(db: DB, usuario_id: string): { db: DB; nuevas: Insigni
   );
   for (const insignia of db.insignias) {
     if (otorgadas.has(insignia.id)) continue; // una sola vez por usuario
+    if (!insignia.criterio) continue;
     if (cumpleCriterio(db, usuario_id, insignia)) nuevas.push(insignia);
   }
   if (nuevas.length === 0) return { db, nuevas };

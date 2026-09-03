@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
@@ -21,3 +21,11 @@ def crear_insignia(dto: CreateInsigniaDTO, service: InsigniaService = Depends(ge
 @router_insignias.get("/", response_model=list[InsigniaResponseDTO])
 def listar_insignias(service: InsigniaService = Depends(get_insignia_service)):
     return service.listar_insignias()
+
+
+@router_insignias.delete("/{insignia_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_insignia(insignia_id: int, service: InsigniaService = Depends(get_insignia_service)):
+    try:
+        service.eliminar_insignia(insignia_id)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))

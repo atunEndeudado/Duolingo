@@ -52,15 +52,16 @@ export interface Progreso {
 }
 
 export type CriterioInsignia =
-  | { tipo: "xp"; valor: number }
-  | { tipo: "racha"; valor: number }
-  | { tipo: "lecciones_completadas"; valor: number };
+  | { variable: "racha"; valor: number }
+  | { variable: "cantidad_amigos"; valor: number }
+  | { variable: "xp_total"; valor: number }
+  | { variable: "xp_dia"; valor: number };
 
 export interface Insignia {
   id: string;
   nombre: string;
   descripcion: string;
-  criterio: CriterioInsignia;
+  criterio?: CriterioInsignia;
   icono: string;
 }
 

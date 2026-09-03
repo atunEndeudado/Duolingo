@@ -116,7 +116,8 @@ CREATE TABLE insignia (
     id          SERIAL PRIMARY KEY,
     nombre      VARCHAR(100) NOT NULL UNIQUE,
     descripcion TEXT,
-    criterio    TEXT NOT NULL   -- descripción legible de la condición de desbloqueo
+    criterio_variable VARCHAR(30) NOT NULL,
+    criterio_valor INTEGER NOT NULL CHECK (criterio_valor > 0)
 );
 
 -- ============================================================

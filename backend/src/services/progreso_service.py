@@ -1,11 +1,13 @@
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime
+from sqlalchemy import select
 from src.db.models.progreso_model import Progreso
 from src.dtos.progreso_dto import CreateProgresoDTO, ProgresoResponseDTO
 from src.mappers.progreso_mapper import to_progreso_response
 from src.repositories.progreso_repository import ProgresoRepository
 from src.db.models.leccion_model import Leccion
 from src.db.models.usuario_model import Usuario
+from src.services.insignia_service import otorgar_insignias_automaticamente
  
  
 class ProgresoService:
@@ -41,12 +43,13 @@ class ProgresoService:
                     usuario.xp_total += leccion.xp_recompensa
                     self.repository.db.commit()
                     self.repository.db.refresh(usuario)
+                    otorgar_insignias_automaticamente(self.repository.db, usuario, datetime.now())
         except IntegrityError as e:
             # acá cae, por ejemplo, el trigger que impide completar una
             # lección sin haber completado la anterior del curso
             raise ValueError("No se puede registrar este progreso: " + str(e.orig)) from e
  
         return to_progreso_response(progreso)
- 
+
     def listar_progreso_de_usuario(self, usuario_id: int) -> list[ProgresoResponseDTO]:
         return [to_progreso_response(p) for p in self.repository.listar_por_usuario(usuario_id)]

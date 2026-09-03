@@ -6,7 +6,8 @@ def to_insignia_model(dto: CreateInsigniaDTO) -> Insignia:
     return Insignia(
         nombre=dto.nombre,
         descripcion=dto.descripcion,
-        criterio=dto.criterio
+        criterio_variable=dto.criterio.variable,
+        criterio_valor=dto.criterio.valor,
     )
 
 def to_insignia_response(insignia: Insignia) -> InsigniaResponseDTO:
@@ -14,6 +15,5 @@ def to_insignia_response(insignia: Insignia) -> InsigniaResponseDTO:
     return InsigniaResponseDTO(
         id=insignia.id,
         nombre=insignia.nombre,
-        descripcion=insignia.descripcion,
-        criterio=insignia.criterio
+        descripcion=insignia.descripcion
     )

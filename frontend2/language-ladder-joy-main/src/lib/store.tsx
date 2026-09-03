@@ -20,6 +20,13 @@ interface AppContextValue {
     xp_recompensa: number;
   }) => Promise<boolean>;
   eliminarLeccion: (leccionId: string) => Promise<boolean>;
+  crearInsignia: (body: {
+    nombre: string;
+    descripcion?: string;
+    variable: "racha" | "cantidad_amigos" | "xp_total" | "xp_dia";
+    valor: number;
+  }) => Promise<boolean>;
+  eliminarInsignia: (insigniaId: string) => Promise<boolean>;
   crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
   crearVocabulario: (body: {
     palabra: string;
@@ -75,13 +82,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await Promise.all(cursosUnicos.map((curso) => api.listarLeccionesPorCurso(curso.id, usuarioId)))
     ).flat();
     const leccionesUnicas = [...new Map(lecciones.map((leccion) => [leccion.id, leccion])).values()];
+    const insignias = await api.listarInsigniasBackend();
     let perfil: Usuario | null = null;
     let progresos = [] as DB["progresos"];
+    let usuarioInsignias = [] as DB["usuario_insignias"];
     if (usuarioId) {
       try {
-        [perfil, progresos] = await Promise.all([
+        [perfil, progresos, usuarioInsignias] = await Promise.all([
           api.obtenerUsuarioBackend(usuarioId),
           api.listarProgresoPorUsuario(usuarioId),
+          api.listarInsigniasUsuarioBackend(usuarioId),
         ]);
       } catch {
         // El catálogo no depende de que el perfil esté disponible en este momento.
@@ -93,6 +103,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       idiomas: idiomasUnicos,
       cursos: cursosUnicos,
       lecciones: leccionesUnicas,
+      insignias,
+      usuario_insignias: usuarioInsignias,
       progresos,
       usuarios: perfil ? [...prev.usuarios.filter((item) => item.id !== perfil.id), perfil] : prev.usuarios,
       usuario_actual: perfil?.id ?? prev.usuario_actual,
@@ -222,6 +234,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar la lección");
+      return false;
+    }
+  }, []);
+
+  const crearInsignia = useCallback(async (body: {
+    nombre: string;
+    descripcion?: string;
+    variable: "racha" | "cantidad_amigos" | "xp_total" | "xp_dia";
+    valor: number;
+  }) => {
+    try {
+      const insignia = await api.crearInsigniaBackend(body);
+      setDb((prev) => ({ ...prev, insignias: [...prev.insignias, insignia] }));
+      toast.success("Insignia creada");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear la insignia");
+      return false;
+    }
+  }, []);
+
+  const eliminarInsignia = useCallback(async (insigniaId: string) => {
+    try {
+      await api.eliminarInsignia(insigniaId);
+      setDb((prev) => ({
+        ...prev,
+        insignias: prev.insignias.filter((insignia) => insignia.id !== insigniaId),
+        usuario_insignias: prev.usuario_insignias.filter((item) => item.insignia_id !== insigniaId),
+      }));
+      toast.success("Insignia eliminada");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la insignia");
       return false;
     }
   }, []);
@@ -389,6 +434,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     eliminarCurso,
     crearLeccion,
     eliminarLeccion,
+    crearInsignia,
+    eliminarInsignia,
     crearIdioma,
     completarLeccion,
     activarPremium,

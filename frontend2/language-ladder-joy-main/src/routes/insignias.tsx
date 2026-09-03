@@ -4,8 +4,6 @@ import { Lock } from "lucide-react";
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
 import { requireAuth } from "@/lib/routeGuards";
-import { Progress } from "@/components/ui/progress";
-import type { CriterioInsignia } from "@/lib/types";
 
 export const Route = createFileRoute("/insignias")({
   beforeLoad: requireAuth,
@@ -36,13 +34,6 @@ function Insignias() {
   }
 
   const lista = api.insigniasDeUsuario(db, usuario.id);
-  const completadas = api.totalLeccionesCompletadas(db, usuario.id);
-
-  const avance = (c: CriterioInsignia) => {
-    const actual =
-      c.tipo === "xp" ? usuario.xp_total : c.tipo === "racha" ? usuario.racha_dias : completadas;
-    return { actual, pct: Math.min(100, Math.round((actual / c.valor) * 100)) };
-  };
 
   return (
     <div className="space-y-6">
@@ -56,7 +47,6 @@ function Insignias() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {lista.map(({ insignia, desbloqueada, fecha }) => {
-          const { actual, pct } = avance(insignia.criterio);
           return (
             <article
               key={insignia.id}
@@ -82,12 +72,7 @@ function Insignias() {
                   Obtenida el {fecha ? new Date(fecha).toLocaleDateString("es-AR") : "-"}
                 </p>
               ) : (
-                <div className="mt-2">
-                  <Progress value={pct} />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {actual} / {insignia.criterio.valor}
-                  </p>
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">Seguí aprendiendo para desbloquearla.</p>
               )}
             </article>
           );

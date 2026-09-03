@@ -1,5 +1,8 @@
+from datetime import datetime
+
 from src.db.models.amigos_model import Amigos
 from src.db.models.solicitud_amistad_model import Solicitud_amistad
+from src.db.models.usuario_model import Usuario
 from src.dtos.amigos_dto import AmigoResponseDTO
 from src.dtos.solicitud_amistad_dto import (
     CreateSolicitudAmistadDTO,
@@ -10,6 +13,7 @@ from src.mappers.amigos_mapper import to_amigo_response
 from src.mappers.solicitud_amistad_mapper import to_solicitud_amistad_response
 from src.repositories.amigos_repository import AmigoRepository
 from src.repositories.solicitud_amistad_repository import SolicitudAmistadRepository
+from src.services.insignia_service import otorgar_insignias_automaticamente
  
  
 class SolicitudAmistadService:
@@ -43,6 +47,12 @@ class SolicitudAmistadService:
             # la tabla 'amigos' exige usuario_a < usuario_b
             a, b = sorted((solicitud.usuario_solicitante, solicitud.usuario_receptor))
             self.amigo_repository.crear(Amigos(usuario_a=a, usuario_b=b))
+            for usuario_id in (a, b):
+                usuario = self.amigo_repository.db.get(Usuario, usuario_id)
+                if usuario:
+                    otorgar_insignias_automaticamente(
+                        self.amigo_repository.db, usuario, datetime.now()
+                    )
  
         return to_solicitud_amistad_response(solicitud)
  
