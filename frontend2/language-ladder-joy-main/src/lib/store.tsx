@@ -65,7 +65,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const idiomas = await api.listarIdiomas();
+        const [usuarios, idiomas] = await Promise.all([
+          api.listarUsuariosBackend(),
+          api.listarIdiomas(),
+        ]);
         const cursos = (
           await Promise.all(idiomas.map((idioma) => api.listarCursosPorIdioma(idioma.id)))
         ).flat();
@@ -75,12 +78,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setDb((prev) => ({
           ...prev,
+          usuarios,
           idiomas,
           cursos,
           lecciones,
         }));
       } catch {
-        setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
+        setDb((prev) => ({ ...prev, usuarios: [], idiomas: [], cursos: [] }));
       }
     };
 

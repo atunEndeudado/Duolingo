@@ -618,11 +618,11 @@ export function ranking(db: DB, periodo: "global" | "semana", yo: string | null)
     .map((u) => ({
       usuario_id: u.id,
       nombre: u.nombre,
-      xp: periodo === "global" ? u.xp_total : xpEnUltimosDias(db, u.id, 7),
-      racha_dias: u.racha_dias,
+      xp: periodo === "global" ? (u.xp_total ?? 0) : xpEnUltimosDias(db, u.id, 7),
+      racha_dias: u.racha_dias ?? 0,
       es_yo: u.id === yo,
     }))
-    .sort((a, b) => b.xp - a.xp || b.racha_dias - a.racha_dias)
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.racha_dias || 0) - (a.racha_dias || 0))
     .slice(0, 50)
     .map((f, i) => ({ posicion: i + 1, ...f }));
 }
@@ -638,11 +638,11 @@ export function rankingAmigos(db: DB, usuario_id: string): { filas: FilaRanking[
     .map((u) => ({
       usuario_id: u.id,
       nombre: u.nombre,
-      xp: u.xp_total,
-      racha_dias: u.racha_dias,
+      xp: u.xp_total ?? 0,
+      racha_dias: u.racha_dias ?? 0,
       es_yo: u.id === usuario_id,
     }))
-    .sort((a, b) => b.xp - a.xp || b.racha_dias - a.racha_dias)
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.racha_dias || 0) - (a.racha_dias || 0))
     .map((f, i) => ({ posicion: i + 1, ...f }));
 
   return { filas, posicion: filas.find((f) => f.es_yo)?.posicion ?? 0 };
