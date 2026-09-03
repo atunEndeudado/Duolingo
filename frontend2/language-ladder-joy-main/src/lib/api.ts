@@ -14,7 +14,7 @@ import type {
   Vocabulario,
 } from "./types";
 
-const API_URL = import.meta.env['VITE_API_URL'] ?? "http://localhost:8000/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8010/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -174,6 +174,16 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 }
 export async function listarUsuariosBackend() {
   const data = await request<any[]>(`/usuarios/`);
+  return (data ?? []).map(mapBackendUsuario);
+}
+
+export async function buscarUsuariosBackend(query: string): Promise<Usuario[]> {
+  const data = await request<any[]>(`/usuarios/buscar?q=${encodeURIComponent(query)}&limit=20`);
+  return (data ?? []).map(mapBackendUsuario);
+}
+
+export async function obtenerSugerenciasBackend(usuarioId: string): Promise<Usuario[]> {
+  const data = await request<any[]>(`/usuarios/sugerencias?usuario_id=${encodeURIComponent(usuarioId)}&limit=20`);
   return (data ?? []).map(mapBackendUsuario);
 }
 

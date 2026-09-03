@@ -26,6 +26,21 @@ class UsuarioRepository:
         return self.db.execute(
             select(Usuario).offset(skip).limit(limit)
         ).scalars().all()
+
+    def buscar(self, query: str, limit: int = 20) -> list[Usuario]:
+        termino = f"%{query.strip()}%"
+        return self.db.execute(
+            select(Usuario)
+            .where((Usuario.nombre.ilike(termino)) | (Usuario.email.ilike(termino)))
+            .limit(limit)
+        ).scalars().all()
+
+    def sugerencias(self, usuario_id: int, limit: int = 20) -> list[Usuario]:
+        return self.db.execute(
+            select(Usuario)
+            .where(Usuario.id != usuario_id)
+            .limit(limit)
+        ).scalars().all()
  
     def actualizar(self, usuario: Usuario) -> Usuario:
         self.db.commit()

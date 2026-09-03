@@ -21,14 +21,24 @@ def crear_usuario(dto: CreateUsuarioDTO, service: UsuarioService = Depends(get_u
         raise HTTPException(status_code=400, detail=str(e))
  
  
+@router_usuarios.get("/", response_model=list[UsuarioResponseDTO])
+def listar_usuarios(skip: int = 0, limit: int = 100, service: UsuarioService = Depends(get_usuario_service)):
+    return service.listar_usuarios(skip, limit)
+
+
+@router_usuarios.get("/buscar", response_model=list[UsuarioResponseDTO])
+def buscar_usuarios(q: str, limit: int = 20, service: UsuarioService = Depends(get_usuario_service)):
+    return service.buscar_usuarios(q, limit)
+
+
+@router_usuarios.get("/sugerencias", response_model=list[UsuarioResponseDTO])
+def obtener_sugerencias(usuario_id: int, limit: int = 20, service: UsuarioService = Depends(get_usuario_service)):
+    return service.obtener_sugerencias(usuario_id, limit)
+
+
 @router_usuarios.get("/{usuario_id}", response_model=UsuarioResponseDTO)
 def obtener_usuario(usuario_id: int, service: UsuarioService = Depends(get_usuario_service)):
     try:
         return service.obtener_usuario(usuario_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
- 
- 
-@router_usuarios.get("/", response_model=list[UsuarioResponseDTO])
-def listar_usuarios(skip: int = 0, limit: int = 100, service: UsuarioService = Depends(get_usuario_service)):
-    return service.listar_usuarios(skip, limit)
