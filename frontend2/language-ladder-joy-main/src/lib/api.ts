@@ -15,7 +15,7 @@ import type {
   DireccionPregunta,
 } from "./types";
 
-const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8010/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8000/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -169,6 +169,10 @@ export async function crearCursoBackend(body: { idioma_id: string; nivel: Nivel 
     body: JSON.stringify({ idioma_id: Number(body.idioma_id), nivel: body.nivel }),
   });
   return mapBackendCurso(data);
+}
+
+export async function eliminarCurso(cursoId: string): Promise<void> {
+  await request<void>(`/cursos/${cursoId}`, { method: "DELETE" });
 }
 
 export async function crearLeccionBackend(body: { curso_id: string; orden: number; titulo: string; xp_recompensa: number }) {
@@ -777,7 +781,7 @@ export async function registrarProgresoBackend(body: {
   });
 }
 
-export async function eliminarLeccionBackend(leccionId: string): Promise<void> {
+export async function eliminarLeccion(leccionId: string): Promise<void> {
   await request<void>(`/lecciones/${leccionId}`, { method: "DELETE" });
 }
 

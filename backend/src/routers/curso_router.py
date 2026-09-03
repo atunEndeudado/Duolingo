@@ -25,3 +25,11 @@ def crear_curso(dto: CreateCursoDTO, service: CursoService = Depends(get_curso_s
 @router_cursos.get("/idioma/{idioma_id}", response_model=list[CursoResponseDTO])
 def listar_cursos_por_idioma(idioma_id: int, service: CursoService = Depends(get_curso_service)):
     return service.listar_cursos_por_idioma(idioma_id)
+
+
+@router_cursos.delete("/{curso_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_curso(curso_id: int, service: CursoService = Depends(get_curso_service)):
+    try:
+        service.eliminar_curso(curso_id)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))

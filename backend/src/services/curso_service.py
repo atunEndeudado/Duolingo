@@ -21,3 +21,9 @@ class CursoService:
  
     def listar_cursos_por_idioma(self, idioma_id: int) -> list[CursoResponseDTO]:
         return [to_curso_response(c) for c in self.repository.listar_por_idioma(idioma_id)]
+
+    def eliminar_curso(self, curso_id: int) -> None:
+        curso = self.repository.obtener_por_id(curso_id)
+        if not curso:
+            raise ValueError("Curso inexistente")
+        self.repository.eliminar(curso)

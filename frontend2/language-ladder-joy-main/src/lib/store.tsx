@@ -12,12 +12,14 @@ interface AppContextValue {
   registrar: (body: { email: string; nombre: string; password: string }) => Promise<boolean>;
   inscribirse: (curso_id: string) => void;
   crearCurso: (body: { idioma_id: string; nivel: Nivel }) => Promise<boolean>;
+  eliminarCurso: (cursoId: string) => Promise<boolean>;
   crearLeccion: (body: {
     curso_id: string;
     orden: number;
     titulo: string;
     xp_recompensa: number;
   }) => Promise<boolean>;
+  eliminarLeccion: (leccionId: string) => Promise<boolean>;
   crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
   crearVocabulario: (body: {
     palabra: string;
@@ -190,6 +192,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const eliminarCurso = useCallback(async (cursoId: string) => {
+    try {
+      await api.eliminarCurso(cursoId);
+      setDb((prev) => ({
+        ...prev,
+        cursos: prev.cursos.filter((curso) => curso.id !== cursoId),
+        lecciones: prev.lecciones.filter((leccion) => leccion.curso_id !== cursoId),
+        usuario_cursos: prev.usuario_cursos.filter((inscripcion) => inscripcion.curso_id !== cursoId),
+      }));
+      toast.success("Curso eliminado");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar el curso");
+      return false;
+    }
+  }, []);
+
+  const eliminarLeccion = useCallback(async (leccionId: string) => {
+    try {
+      await api.eliminarLeccion(leccionId);
+      setDb((prev) => ({
+        ...prev,
+        lecciones: prev.lecciones.filter((leccion) => leccion.id !== leccionId),
+        preguntas: prev.preguntas.filter((pregunta) => pregunta.leccion_id !== leccionId),
+        progresos: prev.progresos.filter((progreso) => progreso.leccion_id !== leccionId),
+      }));
+      toast.success("Lección eliminada");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la lección");
+      return false;
+    }
+  }, []);
+
   const crearIdioma = useCallback(
     async (body: { nombre: string; codigo: string }) => {
       try {
@@ -350,7 +386,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     registrar,
     inscribirse,
     crearCurso,
+    eliminarCurso,
     crearLeccion,
+    eliminarLeccion,
     crearIdioma,
     completarLeccion,
     activarPremium,

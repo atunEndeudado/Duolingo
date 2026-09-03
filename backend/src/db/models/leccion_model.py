@@ -19,6 +19,7 @@ class Leccion(Base):
     # Cantidad de puntos de experiencia (XP)
     # que recibe el usuario al completar la lección.
     xp_recompensa = Column(Integer, nullable=False)
+    curso = relationship("Curso", back_populates="lecciones")
     preguntas = relationship("Pregunta", back_populates="leccion", cascade="all, delete-orphan", passive_deletes=True)
     progresos = relationship("Progreso", back_populates="leccion", cascade="all, delete-orphan", passive_deletes=True)
 

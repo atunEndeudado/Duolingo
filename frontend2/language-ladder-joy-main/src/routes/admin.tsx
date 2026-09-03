@@ -36,7 +36,7 @@ export const Route = createFileRoute("/admin")({
 
 // HU3 — POST /cursos · POST /cursos/{id}/lecciones
 function Admin() {
-  const { db, crearCurso, crearLeccion } = useApp();
+  const { db, crearCurso, crearLeccion, eliminarCurso, eliminarLeccion } = useApp();
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [idiomaId, setIdiomaId] = useState(db.idiomas[0]?.id ?? "");
@@ -48,6 +48,28 @@ function Admin() {
   const [xp, setXp] = useState(10);
 
   const lecciones = api.leccionesDeCurso(db, cursoId);
+
+  const handleEliminarCurso = async () => {
+    if (!cursoId) return;
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este curso? Esta acción eliminará todas las preguntas y progresos asociados.")) {
+      return;
+    }
+
+    const eliminado = await eliminarCurso(cursoId);
+    if (eliminado) {
+      const siguienteCurso = db.cursos.find((curso) => curso.id !== cursoId);
+      setCursoId(siguienteCurso?.id ?? "");
+      setOrden(1);
+    }
+  };
+
+  const handleEliminarLeccion = async (leccionId: string) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar esta lección? Esta acción eliminará todas las preguntas y progresos asociados.")) {
+      return;
+    }
+
+    await eliminarLeccion(leccionId);
+  };
 
   useEffect(() => {
     if (!idiomaId && db.idiomas[0]) setIdiomaId(db.idiomas[0].id);
@@ -95,6 +117,14 @@ function Admin() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={!cursoId}
+              onClick={() => void handleEliminarCurso()}
+            >
+              Eliminar Curso
+            </Button>
           </div>
 
           <div className="space-y-2">
@@ -192,10 +222,17 @@ function Admin() {
             <ol className="mt-2 space-y-1 text-sm">
               {lecciones.map((l) => (
                 <li key={l.id} className="flex justify-between gap-2">
-                  <span>
-                    {l.orden}. {l.titulo}
+                  <span className="min-w-0">
+                    {l.orden}. {l.titulo} <span className="text-muted-foreground">(+{l.xp_recompensa} XP)</span>
                   </span>
-                  <span className="text-muted-foreground">+{l.xp_recompensa} XP</span>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => void handleEliminarLeccion(l.id)}
+                  >
+                    Eliminar Lección
+                  </Button>
                 </li>
               ))}
               {lecciones.length === 0 ? (
