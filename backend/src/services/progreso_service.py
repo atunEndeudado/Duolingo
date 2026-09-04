@@ -37,13 +37,19 @@ class ProgresoService:
                 leccion = self.repository.db.get(Leccion, dto.leccion_id)
                 if not usuario or not leccion:
                     raise ValueError("No existe el usuario o la lección del progreso")
-                # Compatibilidad con instalaciones que aún conservan el trigger SQL de XP.
-                self.repository.db.refresh(usuario)
+                ahora = datetime.now()
+                ultimo = usuario.fecha_ultima_actividad
+                if ultimo and hasattr(ultimo, "date"):
+                    ultimo = ultimo.date()
+                if ultimo != ahora.date():
+                    dias_desde_ultimo = (ahora.date() - ultimo).days if ultimo else None
+                    usuario.racha_dias = usuario.racha_dias + 1 if dias_desde_ultimo == 1 else 1
+                    usuario.fecha_ultima_actividad = ahora
                 if usuario.xp_total == xp_antes:
                     usuario.xp_total += leccion.xp_recompensa
-                    self.repository.db.commit()
-                    self.repository.db.refresh(usuario)
-                    otorgar_insignias_automaticamente(self.repository.db, usuario, datetime.now())
+                self.repository.db.commit()
+                self.repository.db.refresh(usuario)
+                otorgar_insignias_automaticamente(self.repository.db, usuario, ahora)
         except IntegrityError as e:
             # acá cae, por ejemplo, el trigger que impide completar una
             # lección sin haber completado la anterior del curso

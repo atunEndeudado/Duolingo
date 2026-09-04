@@ -16,17 +16,29 @@ class VocabularioRepository:
  
     def obtener_por_id(self, vocabulario_id: int) -> Vocabulario | None:
         return self.db.get(Vocabulario, vocabulario_id)
+
+    def existe_palabra_en_nivel(self, palabra: str, nivel: str) -> bool:
+        return self.db.execute(
+            select(Vocabulario.id).where(
+                func.lower(Vocabulario.palabra) == palabra.strip().lower(),
+                Vocabulario.nivel == nivel,
+            )
+        ).first() is not None
+
+    def eliminar_vocabulario(self, vocabulario: Vocabulario) -> None:
+        self.db.delete(vocabulario)
+        self.db.commit()
+
+    def eliminar(self, vocabulario: Vocabulario) -> None:
+        self.eliminar_vocabulario(vocabulario)
  
     def listar_por_nivel(self, nivel: str) -> list[Vocabulario]:
         return self.db.execute(
             select(Vocabulario).where(Vocabulario.nivel == nivel)
         ).scalars().all()
 
-    def listar(self, idioma_id: int | None = None, nivel: str | None = None) -> list[Vocabulario]:
+    def listar(self, nivel: str | None = None) -> list[Vocabulario]:
         consulta = select(Vocabulario)
-
-        if idioma_id is not None:
-            consulta = consulta.where(Vocabulario.idioma_id == idioma_id)
 
         if nivel is not None:
             consulta = consulta.where(Vocabulario.nivel == nivel)

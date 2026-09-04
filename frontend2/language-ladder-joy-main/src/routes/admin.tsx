@@ -300,9 +300,6 @@ function Admin() {
           </Button>
 
           <div className="pt-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-              Lecciones del curso (GET /cursos/{"{"}id{"}"}/lecciones)
-            </p>
             <ol className="mt-2 space-y-1 text-sm">
               {lecciones.map((l) => (
                 <li key={l.id} className="flex justify-between gap-2">
@@ -329,7 +326,7 @@ function Admin() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <AgregarPreguntas lecciones={lecciones} />
-        <AgregarVocabulario idiomas={db.idiomas} />
+        <AgregarVocabulario />
       </div>
     </div>
   );

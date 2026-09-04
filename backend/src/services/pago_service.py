@@ -9,11 +9,11 @@ from src.db.models.suscripcion_model import Suscripcion
 
 ACCESS_TOKEN = settings.MERCADOPAGO_ACCESS_TOKEN
 sdk = mercadopago.SDK(ACCESS_TOKEN)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:8080").rstrip("/")
 PREFERENCIA_MOCK = {
     "preference_id": "pref_mock_123",
-    "init_point": "http://localhost:3000/pago-exitoso",
-    "sandbox_init_point": "http://localhost:3000/pago-exitoso",
+    "init_point": f"{FRONTEND_URL}/pago-exitoso",
+    "sandbox_init_point": f"{FRONTEND_URL}/pago-exitoso",
 }
 
 PLANES = {

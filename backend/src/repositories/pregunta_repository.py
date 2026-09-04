@@ -28,6 +28,12 @@ class PreguntaRepository:
             select(Pregunta).where(Pregunta.leccion_id == leccion_id).order_by(Pregunta.orden)
         ).scalars().all()
 
+    def usuario_es_premium(self, usuario_id: int) -> bool:
+        from src.db.models.usuario_model import Usuario
+
+        usuario = self.db.get(Usuario, usuario_id)
+        return bool(usuario and usuario.es_premium)
+
     def codigo_idioma_de_leccion(self, leccion_id: int) -> str | None:
         from src.db.models.curso_model import Curso
         from src.db.models.idioma_model import Idioma
@@ -38,6 +44,17 @@ class PreguntaRepository:
             .select_from(Leccion)
             .join(Curso, Curso.id == Leccion.curso_id)
             .join(Idioma, Idioma.id == Curso.idioma_id)
+            .where(Leccion.id == leccion_id)
+        ).scalar_one_or_none()
+
+    def nivel_de_leccion(self, leccion_id: int) -> str | None:
+        from src.db.models.curso_model import Curso
+        from src.db.models.leccion_model import Leccion
+
+        return self.db.execute(
+            select(Curso.nivel)
+            .select_from(Leccion)
+            .join(Curso, Curso.id == Leccion.curso_id)
             .where(Leccion.id == leccion_id)
         ).scalar_one_or_none()
  

@@ -10,7 +10,7 @@ interface AppContextValue {
   db: DB;
   usuario: Usuario | null;
   registrar: (body: { email: string; nombre: string; password: string }) => Promise<boolean>;
-  inscribirse: (curso_id: string) => void;
+  inscribirse: (curso_id: string) => Promise<boolean>;
   crearCurso: (body: { idioma_id: string; nivel: Nivel }) => Promise<boolean>;
   eliminarCurso: (cursoId: string) => Promise<boolean>;
   crearLeccion: (body: {
@@ -30,10 +30,9 @@ interface AppContextValue {
   crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
   crearVocabulario: (body: {
     palabra: string;
-    traduccion: string;
     nivel: Nivel;
-    idioma_id: string;
   }) => Promise<boolean>;
+  eliminarVocabulario: (vocabularioId: string) => Promise<boolean>;
   crearPregunta: (body: {
     leccion_id: string;
     pregunta: string;
@@ -46,8 +45,8 @@ interface AppContextValue {
   completarLeccion: (leccion_id: string, puntaje: number) => Promise<boolean>;
   activarPremium: (plan: string) => void;
   cancelarPremium: () => void;
-  enviarSolicitud: (amigo_id: string) => void;
-  responderSolicitud: (solicitud_id: string, acepta: boolean) => void;
+  enviarSolicitud: (amigo_id: string) => Promise<boolean>;
+  responderSolicitud: (solicitud_id: string, acepta: boolean) => Promise<boolean>;
   cancelarSolicitud: (solicitud_id: string) => void;
   eliminarAmigo: (amigo_id: string) => void;
   buscarUsuarios: (query: string) => Promise<Usuario[]>;
@@ -82,16 +81,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await Promise.all(cursosUnicos.map((curso) => api.listarLeccionesPorCurso(curso.id, usuarioId)))
     ).flat();
     const leccionesUnicas = [...new Map(lecciones.map((leccion) => [leccion.id, leccion])).values()];
+    const preguntasPorLeccion = await Promise.all(
+      leccionesUnicas.map((leccion) => api.listarPreguntasPorLeccion(leccion.id, usuarioId).catch(() => [])),
+    );
     const insignias = await api.listarInsigniasBackend();
     let perfil: Usuario | null = null;
     let progresos = [] as DB["progresos"];
     let usuarioInsignias = [] as DB["usuario_insignias"];
+    let usuarioCursos = [] as DB["usuario_cursos"];
     if (usuarioId) {
       try {
-        [perfil, progresos, usuarioInsignias] = await Promise.all([
+        [perfil, progresos, usuarioInsignias, usuarioCursos] = await Promise.all([
           api.obtenerUsuarioBackend(usuarioId),
           api.listarProgresoPorUsuario(usuarioId),
           api.listarInsigniasUsuarioBackend(usuarioId),
+          api.listarInscripcionesUsuarioBackend(usuarioId),
         ]);
       } catch {
         // El catálogo no depende de que el perfil esté disponible en este momento.
@@ -103,8 +107,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       idiomas: idiomasUnicos,
       cursos: cursosUnicos,
       lecciones: leccionesUnicas,
+      preguntas: preguntasPorLeccion.flat(),
       insignias,
       usuario_insignias: usuarioInsignias,
+      usuario_cursos: usuarioCursos,
       progresos,
       usuarios: perfil ? [...prev.usuarios.filter((item) => item.id !== perfil.id), perfil] : prev.usuarios,
       usuario_actual: perfil?.id ?? prev.usuario_actual,
@@ -156,19 +162,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const inscribirse = useCallback(
-    (curso_id: string) => {
-      if (!usuario) return;
-      setDb((prev) => {
-        const res = api.inscribirse(prev, usuario.id, curso_id);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
+    async (curso_id: string) => {
+      if (!usuario) return false;
+      try {
+        const inscripcion = await api.inscribirseBackend(usuario.id, curso_id);
+        setDb((prev) => ({
+          ...prev,
+          usuario_cursos: [...prev.usuario_cursos, inscripcion],
+        }));
+        await recargarDatos(usuario.id);
         toast.success("Inscripción confirmada");
-        return res.data.db;
-      });
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo inscribir al curso");
+        return false;
+      }
     },
-    [usuario],
+    [recargarDatos, usuario],
   );
 
   const crearCurso = useCallback(async (body: { idioma_id: string; nivel: Nivel }) => {
@@ -332,31 +342,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [usuario]);
 
   const enviarSolicitud = useCallback(
-    (amigo_id: string) => {
-      if (!usuario) return;
-      setDb((prev) => {
-        const res = api.enviarSolicitud(prev, usuario.id, amigo_id);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
+    async (amigo_id: string) => {
+      if (!usuario) return false;
+      try {
+        const solicitud = await api.enviarSolicitudBackend(usuario.id, amigo_id);
+        setDb((prev) => ({ ...prev, solicitudes: [...prev.solicitudes, { id: String(solicitud.id), de: usuario.id, para: amigo_id, estado: "pendiente", fecha: String(solicitud.fecha ?? "") }] }));
         toast.success("Solicitud enviada. Queda pendiente hasta que la acepte.");
-        return res.data.db;
-      });
+        return true;
+      } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo enviar la solicitud"); return false; }
     },
     [usuario],
   );
 
-  const responderSolicitud = useCallback((solicitud_id: string, acepta: boolean) => {
-    setDb((prev) => {
-      const res = api.responderSolicitud(prev, solicitud_id, acepta);
-      if (!res.ok) {
-        toast.error(res.error);
-        return prev;
-      }
+  const responderSolicitud = useCallback(async (solicitud_id: string, acepta: boolean) => {
+    try {
+      await api.responderSolicitudBackend(solicitud_id, acepta);
+      if (usuario) await recargarDatos(usuario.id);
       toast.success(acepta ? "¡Ahora son amigos!" : "Solicitud rechazada");
-      return res.data.db;
-    });
+      return true;
+    } catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo responder la solicitud"); return false; }
   }, []);
 
   const cancelarSolicitud = useCallback((solicitud_id: string) => {
@@ -382,9 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const crearVocabulario = useCallback(
     async (body: {
       palabra: string;
-      traduccion: string;
       nivel: Nivel;
-      idioma_id: string;
     }) => {
       try {
         const vocabulario = await api.crearVocabularioBackend(body);
@@ -401,6 +403,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const eliminarVocabulario = useCallback(async (vocabularioId: string) => {
+    try {
+      await api.eliminarVocabulario(vocabularioId);
+      setDb((prev) => ({
+        ...prev,
+        vocabulario: prev.vocabulario.filter((item) => item.id !== vocabularioId),
+      }));
+      toast.success("Palabra eliminada");
+      return true;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la palabra");
+      return false;
+    }
+  }, []);
+
   const crearPregunta = useCallback(
     async (body: {
       leccion_id: string;
@@ -416,6 +433,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...prev,
           preguntas: [...prev.preguntas, pregunta],
         }));
+        toast.success("Pregunta agregada a la lección");
         return true;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "No se pudo agregar la pregunta");
@@ -447,6 +465,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     buscarUsuarios,
     obtenerSugerencias,
     crearVocabulario,
+    eliminarVocabulario,
     crearPregunta,
     recargarDatos,
   };

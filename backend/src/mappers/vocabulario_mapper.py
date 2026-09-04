@@ -7,5 +7,4 @@ def to_vocabulario_response(vocabulario: Vocabulario) -> VocabularioResponseDTO:
         palabra=vocabulario.palabra,
         traduccion=vocabulario.traduccion,
         nivel=vocabulario.nivel,
-        idioma_id=vocabulario.idioma_id,
     )

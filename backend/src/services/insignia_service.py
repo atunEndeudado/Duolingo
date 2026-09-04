@@ -20,6 +20,8 @@ class InsigniaService:
     def crear_insignia(self, dto: CreateInsigniaDTO) -> InsigniaResponseDTO:
         insignia_entity = to_insignia_model(dto)
         nueva_insignia = self.repository.crear(insignia_entity)
+        for usuario in self.repository.db.execute(select(Usuario)).scalars():
+            otorgar_insignias_automaticamente(self.repository.db, usuario, datetime.now())
         return to_insignia_response(nueva_insignia)
 
     def listar_insignias(self) -> list[InsigniaResponseDTO]:
@@ -63,7 +65,9 @@ def otorgar_insignias_automaticamente(db: Session, usuario: Usuario, ahora: date
     xp_dia = sum(
         progreso.leccion.xp_recompensa
         for progreso in progresos
-        if progreso.fecha and progreso.fecha.date() == ahora.date()
+        if progreso.fecha and (
+            progreso.fecha.date() if hasattr(progreso.fecha, "date") else progreso.fecha
+        ) == ahora.date()
     )
     valores = {
         "racha": usuario.racha_dias,

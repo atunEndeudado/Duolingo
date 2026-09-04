@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.middlewares.error_middleware import app_error_handler
-from src.routers import auth_router, usuario_router, curso_router, idioma_router, insignias_router,leccion_router,pregunta_router,usuario_cursos_router, usuario_insignias_router,vocabulario_router, pago_router, progreso_router
+from src.routers import auth_router, usuario_router, curso_router, idioma_router, insignias_router,leccion_router,pregunta_router,usuario_cursos_router, usuario_insignias_router,vocabulario_router, pago_router, progreso_router, ranking_router, amigos_solicitud_amistad_router
 from src.utils.errors import AppError
  
 app = FastAPI(title="Tubolingo API")
@@ -20,12 +20,17 @@ app.include_router(usuario_insignias_router.router_usuario_insignias, prefix="/a
 app.include_router(vocabulario_router.router_vocabulario, prefix="/api")
 app.include_router(pago_router.router_pago, prefix="/api")
 app.include_router(progreso_router.router_progreso, prefix="/api")
+app.include_router(ranking_router.router_ranking, prefix="/api")
+app.include_router(amigos_solicitud_amistad_router.router_amistad, prefix="/api")
 
 # Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:8080",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],  # Permite todos los métodos HTTP (GET, POST, PUT, DELETE, OPTIONS, etc.)

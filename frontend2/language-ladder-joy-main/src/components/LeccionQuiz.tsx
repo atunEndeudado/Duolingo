@@ -120,10 +120,8 @@ export function LeccionQuiz({
     if (!izq) return;
     const par = pares.find((item) => item.es === izq);
     if (!par) return;
-    if (par.tr === tr) {
-      setUniones((prev) => ({ ...prev, [izq]: tr }));
-      setParesResueltos((prev) => [...prev, izq]);
-    }
+    setUniones((prev) => ({ ...prev, [izq]: tr }));
+    setParesResueltos((prev) => (prev.includes(izq) ? prev : [...prev, izq]));
     setIzq(null);
   }
 
@@ -149,14 +147,9 @@ export function LeccionQuiz({
             Hay {premiumBloqueadas} preguntas más en esta lección con Premium.
           </p>
         ) : null}
-        <div className="flex justify-center gap-2">
-          <Button variant="outline" onClick={onCerrar}>
-            Salir
-          </Button>
-          <Button className="shadow-pop" onClick={() => onFinalizar(puntaje)}>
-            Enviar resultado
-          </Button>
-        </div>
+        <Button className="shadow-pop" onClick={() => onFinalizar(puntaje)}>
+          Salir
+        </Button>
       </div>
     );
   }
@@ -265,7 +258,9 @@ export function LeccionQuiz({
                       izq === p.es
                         ? "border-primary bg-primary/10"
                         : resuelta
-                          ? "border-primary bg-primary/10 opacity-60"
+                          ? normalizar(uniones[p.es] ?? "") === normalizar(pares.find((par) => par.es === p.es)?.tr ?? "")
+                            ? "border-primary bg-primary/10 opacity-60"
+                            : "border-destructive bg-destructive/10"
                             : "border-border hover:bg-secondary"
                     }`}
                   >
@@ -282,7 +277,11 @@ export function LeccionQuiz({
           </ul>
           <ul className="space-y-2">
             {derecha.map((p) => {
-              const usada = paresResueltos.some((es) => pares.find((par) => par.es === es)?.tr === p.tr);
+              const usadaPor = paresResueltos.find((es) => uniones[es] === p.tr);
+              const usada = Boolean(usadaPor);
+              const unionCorrecta = usadaPor
+                ? normalizar(pares.find((par) => par.es === usadaPor)?.tr ?? "") === normalizar(p.tr)
+                : false;
               return (
                 <li key={p.tr}>
                   <button
@@ -290,7 +289,11 @@ export function LeccionQuiz({
                     disabled={!izq || usada}
                     onClick={() => tocarDerecha(p.tr)}
                     className={`w-full rounded-2xl border-2 px-3 py-3 text-left text-sm font-bold transition-colors ${
-                      usada ? "border-border opacity-50" : "border-border hover:bg-secondary"
+                      usada
+                        ? unionCorrecta
+                          ? "border-primary bg-primary/10 opacity-60"
+                          : "border-destructive bg-destructive/10"
+                        : "border-border hover:bg-secondary"
                     }`}
                   >
                     {p.tr}
@@ -350,7 +353,9 @@ export function LeccionQuiz({
               ? `La respuesta era "${(pregunta.opciones ?? [])[pregunta.correcta ?? 0]}"`
               : pregunta.tipo === "escritura" || pregunta.tipo === "traducir"
                 ? `La respuesta era "${respuestaCorrecta}"`
-                : "Hay uniones incorrectas."}
+                : pregunta.tipo === "oracion"
+                  ? `La respuesta correcta es "${respuestaCorrecta}"`
+                  : "Hay uniones incorrectas."}
         </p>
       ) : null}
 

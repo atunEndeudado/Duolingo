@@ -10,5 +10,6 @@ def to_pregunta_response(pregunta: Pregunta) -> PreguntaResponseDTO:
         respuesta=pregunta.respuesta,
         tipo=pregunta.tipo or "traducir",
         direccion=pregunta.direccion or "nativo_a_curso",
-        es_premium=pregunta.es_premium
+        es_premium=pregunta.es_premium,
+        pares=pregunta.pares,
     )

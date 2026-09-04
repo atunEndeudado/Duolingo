@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Any
 # DTO utilizado para crear una nueva pregunta
 class CreatePreguntaDTO(BaseModel):
     # Identificador de la lección a la que pertenece
@@ -26,3 +27,4 @@ class PreguntaResponseDTO(BaseModel):
     tipo: str = "traducir"
     direccion: str = "nativo_a_curso"
     es_premium: bool
+    pares: list[dict[str, str]] | None = None

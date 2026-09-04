@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AuthService.logout();
     setToken(null);
     toast.success("Sesión cerrada");
+    window.location.replace("/registro");
   };
 
   return (

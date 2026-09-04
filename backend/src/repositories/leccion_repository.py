@@ -26,6 +26,14 @@ class LeccionRepository:
         return self.db.execute(
             select(Leccion).where(Leccion.curso_id == curso_id, Leccion.orden == orden)
         ).scalar_one_or_none()
+
+    def existe_titulo(self, curso_id: int, titulo: str) -> bool:
+        return self.db.execute(
+            select(Leccion.id).where(
+                Leccion.curso_id == curso_id,
+                func.lower(Leccion.titulo) == titulo.strip().lower(),
+            )
+        ).first() is not None
  
     def eliminar(self, leccion: Leccion) -> None:
         self.db.delete(leccion)

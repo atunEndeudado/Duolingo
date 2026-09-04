@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -22,6 +22,7 @@ class Pregunta(Base):
     # Indica si la pregunta requiere una cuenta premium
     # para poder acceder a ella.
     es_premium = Column(Boolean, nullable=False)
+    pares = Column(JSON, nullable=True)
     leccion = relationship("Leccion", back_populates="preguntas")
 
 

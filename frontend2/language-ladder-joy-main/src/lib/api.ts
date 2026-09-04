@@ -15,13 +15,15 @@ import type {
   DireccionPregunta,
 } from "./types";
 
-const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8000/api";
+const API_URL = import.meta.env['VITE_API_URL'] ?? "http://127.0.0.1:8020/api";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = typeof window === "undefined" ? null : localStorage.getItem("access_token");
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init?.headers ?? {}),
     },
   });
@@ -116,6 +118,7 @@ export function mapBackendPregunta(p: any): Pregunta {
   const paresGenerados = tipoBackend === "unir_palabras" && palabrasPregunta.length === palabrasRespuesta.length
     ? palabrasPregunta.map((es, index) => ({ es, tr: palabrasRespuesta[index]! }))
     : undefined;
+  const paresBackend = Array.isArray(p.pares) ? p.pares : undefined;
   const palabrasGeneradas = tipoBackend === "unir_oraciones" ? respuesta.split(/\s+/).filter(Boolean) : undefined;
   return {
     id: asStringId(p.id),
@@ -127,7 +130,7 @@ export function mapBackendPregunta(p: any): Pregunta {
     tipo: tipoBackend === "traducir" ? "escritura" : tipoBackend === "unir_oraciones" ? "oracion" : "match",
     direccion,
     enunciado: String(p.enunciado ?? pregunta),
-    ...(paresGenerados ? { pares: paresGenerados } : {}),
+    ...(paresBackend ?? paresGenerados ? { pares: paresBackend ?? paresGenerados } : {}),
     ...(palabrasGeneradas ? { palabras: palabrasGeneradas } : {}),
     premium: Boolean(p.es_premium ?? false)
   };
@@ -139,7 +142,7 @@ export function mapBackendVocabulario(v: any): Vocabulario {
     palabra: String(v.palabra ?? ""),
     traduccion: String(v.traduccion ?? ""),
     nivel: v.nivel as Nivel,
-    idioma_id: asStringId(v.idioma_id),
+    ...(v.idioma_id != null ? { idioma_id: asStringId(v.idioma_id) } : {}),
   };
 }
 
@@ -159,6 +162,27 @@ export async function crearIdiomaBackend(body: { nombre: string; codigo: string 
 export async function listarCursosPorIdioma(idiomaId: string): Promise<Curso[]> {
   const data = await request<any[]>(`/cursos/idioma/${idiomaId}`);
   return (data ?? []).map(mapBackendCurso);
+}
+
+export async function inscribirseBackend(usuarioId: string, cursoId: string) {
+  const data = await request<any>("/inscripciones/", {
+    method: "POST",
+    body: JSON.stringify({ usuario_id: Number(usuarioId), curso_id: Number(cursoId) }),
+  });
+  return {
+    usuario_id: asStringId(data.usuario_id),
+    curso_id: asStringId(data.curso_id),
+    fecha_inscripcion: String(data.fecha_inscripcion ?? ""),
+  };
+}
+
+export async function listarInscripcionesUsuarioBackend(usuarioId: string) {
+  const data = await request<any[]>(`/inscripciones/usuario/${usuarioId}`);
+  return (data ?? []).map((item) => ({
+    usuario_id: asStringId(item.usuario_id),
+    curso_id: asStringId(item.curso_id),
+    fecha_inscripcion: String(item.fecha_inscripcion ?? ""),
+  }));
 }
 
 export async function listarLeccionesPorCurso(cursoId: string, usuarioId?: string): Promise<Leccion[]> {
@@ -815,12 +839,29 @@ export async function crearPreguntaBackend(body: {
   return mapBackendPregunta(data);
 }
 
+export async function generarPreguntasVocabularioBackend(leccionId: string): Promise<Pregunta[]> {
+  const data = await request<any[]>(`/preguntas/vocabulario/leccion/${leccionId}`);
+  return (data ?? []).map(mapBackendPregunta);
+}
+
+export async function generarMatchVocabularioBackend(leccionId: string, esPremium = false): Promise<Pregunta> {
+  let data: any;
+  try {
+    data = await request<any>(`/preguntas/vocabulario/matching/leccion/${leccionId}?es_premium=${esPremium}`, { method: "POST" });
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.toLowerCase().includes("method not allowed")) throw error;
+    data = await request<any>(`/preguntas/vocabulario/matching/leccion/${leccionId}`);
+  }
+  return mapBackendPregunta(data);
+}
+
 export async function eliminarPreguntaBackend(preguntaId: string): Promise<void> {
   await request<void>(`/preguntas/${preguntaId}`, { method: "DELETE" });
 }
 
-export async function listarPreguntasPorLeccion(leccionId: string): Promise<Pregunta[]> {
-  const data = await request<any[]>(`/preguntas/leccion/${leccionId}`);
+export async function listarPreguntasPorLeccion(leccionId: string, usuarioId?: string): Promise<Pregunta[]> {
+  const query = usuarioId ? `?usuario_id=${encodeURIComponent(usuarioId)}` : "";
+  const data = await request<any[]>(`/preguntas/leccion/${leccionId}${query}`);
   return (data ?? []).map(mapBackendPregunta);
 }
 
@@ -853,31 +894,51 @@ export async function listarProgresoPorUsuario(usuarioId: string): Promise<Progr
 /* ------------------------------------------------------------------ *
  * Vocabulario (Admin)
  * POST /vocabulario  { palabra, traduccion, nivel, idioma_id }
- * GET  /vocabulario  ?idioma_id=1&nivel=A1
+ * GET  /vocabulario  ?nivel=A1
  * ------------------------------------------------------------------ */
 export async function crearVocabularioBackend(body: {
   palabra: string;
-  traduccion: string;
   nivel: Nivel;
-  idioma_id: string;
 }) {
   const data = await request<any>(`/vocabulario/`, {
     method: "POST",
     body: JSON.stringify({
       palabra: body.palabra,
-      traduccion: body.traduccion,
       nivel: body.nivel,
-      idioma_id: Number(body.idioma_id),
     }),
   });
   return mapBackendVocabulario(data);
 }
 
-export async function listarVocabulario(idiomaId?: string, nivel?: Nivel): Promise<Vocabulario[]> {
+export async function listarVocabulario(nivel?: Nivel): Promise<Vocabulario[]> {
   const params = new URLSearchParams();
-  if (idiomaId) params.append("idioma_id", idiomaId);
   if (nivel) params.append("nivel", nivel);
   const query = params.toString();
   const data = await request<any[]>(`/vocabulario${query ? "?" + query : ""}`);
   return (data ?? []).map(mapBackendVocabulario);
+}
+
+export async function listarRankingBackend(periodo: "global" | "semana", usuarioId: string): Promise<FilaRanking[]> {
+  const data = await request<any[]>(`/ranking/?periodo=${periodo}`);
+  return (data ?? []).map((item) => ({
+    posicion: Number(item.posicion), usuario_id: asStringId(item.usuario_id), nombre: String(item.nombre ?? ""),
+    xp: Number(item.xp ?? 0), racha_dias: Number(item.racha_dias ?? 0), es_yo: asStringId(item.usuario_id) === usuarioId,
+  }));
+}
+
+export async function enviarSolicitudBackend(usuarioId: string, amigoId: string) {
+  return request<any>("/amistad/solicitudes", { method: "POST", body: JSON.stringify({ usuario_solicitante: Number(usuarioId), usuario_receptor: Number(amigoId) }) });
+}
+
+export async function listarSolicitudesBackend(usuarioId: string) {
+  const data = await request<any[]>(`/amistad/solicitudes/pendientes/${usuarioId}`);
+  return (data ?? []).map((item) => ({ id: asStringId(item.id), de: asStringId(item.usuario_solicitante), para: asStringId(item.usuario_receptor), estado: item.estado, fecha: String(item.fecha ?? "") }));
+}
+
+export async function responderSolicitudBackend(id: string, acepta: boolean) {
+  return request<any>(`/amistad/solicitudes/${id}`, { method: "PATCH", body: JSON.stringify({ estado: acepta ? "aceptada" : "rechazada" }) });
+}
+
+export async function eliminarVocabulario(vocabularioId: string): Promise<void> {
+  await request<void>(`/vocabulario/${vocabularioId}`, { method: "DELETE" });
 }

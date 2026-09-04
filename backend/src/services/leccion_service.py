@@ -13,10 +13,18 @@ class LeccionService:
     def crear_leccion(self, dto: CreateLeccionDTO) -> LeccionResponseDTO:
         if self.repository.obtener_por_curso_y_orden(dto.curso_id, dto.orden):
             raise ValueError("Ya existe una lección con ese orden en el curso")
+        titulo = dto.titulo.strip()
+        if not titulo:
+            raise ValueError("El título de la lección es obligatorio")
+        titulo_base = titulo
+        sufijo = 2
+        while self.repository.existe_titulo(dto.curso_id, titulo):
+            titulo = f"{titulo_base} {sufijo}"
+            sufijo += 1
         leccion = Leccion(
             curso_id=dto.curso_id,
             orden=dto.orden,
-            titulo=dto.titulo,
+            titulo=titulo,
             xp_recompensa=dto.xp_recompensa
         )
         leccion = self.repository.crear(leccion)

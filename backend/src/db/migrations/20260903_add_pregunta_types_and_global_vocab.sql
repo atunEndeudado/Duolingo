@@ -1,0 +1,7 @@
+ALTER TABLE preguntas
+    ADD COLUMN IF NOT EXISTS tipo VARCHAR(30) NOT NULL DEFAULT 'traducir',
+    ADD COLUMN IF NOT EXISTS direccion VARCHAR(30) NOT NULL DEFAULT 'nativo_a_curso';
+
+ALTER TABLE vocabulario
+    ALTER COLUMN idioma_id DROP NOT NULL,
+    ALTER COLUMN traduccion DROP NOT NULL;

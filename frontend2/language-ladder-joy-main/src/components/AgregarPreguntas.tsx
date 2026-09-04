@@ -27,6 +27,7 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
   const [pregunta, setPregunta] = useState("");
   const [esPremium, setEsPremium] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [generandoMatch, setGenerandoMatch] = useState(false);
   const [preguntasExistentes, setPreguntasExistentes] = useState<Pregunta[]>([]);
   const [cargandoPreguntas, setCargandoPreguntas] = useState(false);
   const { crearPregunta } = useApp();
@@ -39,7 +40,8 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
 
     setCargandoPreguntas(true);
     try {
-      setPreguntasExistentes(await api.listarPreguntasPorLeccion(id));
+      const preguntas = await api.listarPreguntasPorLeccion(id);
+      setPreguntasExistentes(preguntas.filter((item) => item.id && !item.id.startsWith("-")));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudieron cargar las preguntas");
     } finally {
@@ -53,7 +55,7 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leccionId || !pregunta.trim()) {
+    if (!leccionId || (tipo !== "unir_palabras" && !pregunta.trim())) {
       toast.error("Completa todos los campos");
       return;
     }
@@ -78,7 +80,30 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
     }
   };
 
+  const generarMatch = async () => {
+    if (!leccionId) return;
+    setGenerandoMatch(true);
+    try {
+      const match = await api.generarMatchVocabularioBackend(leccionId, esPremium);
+      if (!match.pares?.length) {
+        toast.error("No hay palabras en el vocabulario de este nivel");
+        return;
+      }
+      setPreguntasExistentes((actuales) => [...actuales, match]);
+      toast.success(`${match.pares.length} palabras seleccionadas para el matching`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo generar el matching");
+    } finally {
+      setGenerandoMatch(false);
+    }
+  };
+
   const eliminarPregunta = async (preguntaId: string) => {
+    if (preguntaId.startsWith("-")) {
+      setPreguntasExistentes((actuales) => actuales.filter((item) => item.id !== preguntaId));
+      toast.success("Matching eliminado de la lección");
+      return;
+    }
     try {
       await api.eliminarPreguntaBackend(preguntaId);
       setPreguntasExistentes((actuales) => actuales.filter((item) => item.id !== preguntaId));
@@ -122,26 +147,27 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="pregunta">
-          {direccion === "nativo_a_curso" ? "Texto nativo (Español)" : "Texto en el idioma del curso"}
-        </Label>
-        <Textarea
-          id="pregunta"
-          value={pregunta}
-          onChange={(e) => setPregunta(e.target.value)}
-          placeholder={
-            tipo === "traducir"
-              ? direccion === "nativo_a_curso"
-                ? "ej: Ambulancia"
-                : "ej: Krankenwagen"
-              : tipo === "unir_palabras"
-                ? "ej: Unir palabra con su traducción"
-                : "ej: Formar oración con: The, cat, is, black"
-          }
-          required
-        />
-      </div>
+      {tipo === "unir_palabras" ? (
+        <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+          Las palabras se seleccionan automáticamente del vocabulario del nivel de la lección.
+          <Button type="button" className="mt-3 w-full" disabled={generandoMatch || !leccionId} onClick={() => void generarMatch()}>
+            {generandoMatch ? "Generando..." : "Generar matching con vocabulario"}
+          </Button>
+        </div>
+      ) : null}
+
+      {tipo !== "unir_palabras" ? (
+        <div className="space-y-2">
+          <Label htmlFor="pregunta">Palabra o frase base en español</Label>
+          <Textarea
+            id="pregunta"
+            value={pregunta}
+            onChange={(e) => setPregunta(e.target.value)}
+            placeholder="ej: Ambulancia"
+            required
+          />
+        </div>
+      ) : null}
 
       <label className="flex items-center gap-2">
         <input
@@ -162,7 +188,10 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
         <ul className="mt-2 space-y-2">
           {preguntasExistentes.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-3 py-2 text-sm">
-              <span className="min-w-0 truncate">{item.orden}. {item.pregunta}</span>
+              <span className="min-w-0 truncate">
+                {item.orden}. {item.pregunta || "Pregunta sin contenido"}
+                {item.tipo === "match" && !item.pares?.length ? " (sin pares: eliminar)" : ""}
+              </span>
               <Button type="button" variant="destructive" size="sm" onClick={() => void eliminarPregunta(item.id)}>
                 Eliminar
               </Button>
@@ -184,7 +213,7 @@ export function AgregarPreguntas({ lecciones }: AgregarPreguntasProps) {
         </Select>
       </div>
 
-      <Button type="submit" disabled={loading} className="shadow-pop">
+      <Button type="submit" disabled={loading || tipo === "unir_palabras"} className="shadow-pop">
         {loading ? "Creando..." : "Crear Pregunta"}
       </Button>
     </form>

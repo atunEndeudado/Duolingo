@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Clock, Flame, UserPlus, Zap, Crown, Trophy, UserRound } from "lucide-react";
 
 import * as api from "@/lib/api";
@@ -38,11 +38,17 @@ export const Route = createFileRoute("/ranking")({
 function Ranking() {
   const { db, usuario, enviarSolicitud } = useApp();
   const [tab, setTab] = useState<"global" | "semana" | "amigos">("global");
+  const [rankingBackend, setRankingBackend] = useState<FilaRanking[]>([]);
   const [perfilSeleccionado, setPerfilSeleccionado] = useState<Usuario | null>(null);
 
   const amigos = usuario ? api.rankingAmigos(db, usuario.id) : { filas: [], posicion: 0 };
   const filas: FilaRanking[] =
-    tab === "amigos" ? amigos.filas : api.ranking(db, tab, usuario?.id ?? null);
+    tab === "amigos" ? amigos.filas : rankingBackend;
+
+  useEffect(() => {
+    if (!usuario || tab === "amigos") return;
+    void api.listarRankingBackend(tab, usuario.id).then(setRankingBackend).catch(() => setRankingBackend([]));
+  }, [tab, usuario?.id]);
 
   // HU8 — POST /usuarios/{id}/solicitudes { amigo_id }
   function estadoAmistad(otro_id: string) {
@@ -56,6 +62,16 @@ function Ranking() {
     ? db.insignias.filter((insignia) => api.cumpleCriterio(db, perfilSeleccionado.id, insignia))
     : [];
   const estadoSeleccionado = perfilSeleccionado ? estadoAmistad(perfilSeleccionado.id) : "yo";
+
+  async function abrirPerfil(usuarioId: string) {
+    try {
+      // El ranking solo trae datos resumidos; el perfil completo se consulta al abrirlo.
+      setPerfilSeleccionado(await api.obtenerUsuarioBackend(usuarioId));
+    } catch {
+      // Como respaldo, mantenemos el perfil si ya está cacheado localmente.
+      setPerfilSeleccionado(db.usuarios.find((item) => item.id === usuarioId) ?? null);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -90,11 +106,11 @@ function Ranking() {
             role="button"
             tabIndex={0}
             aria-label={`Ver perfil de ${f.nombre}`}
-            onClick={() => setPerfilSeleccionado(db.usuarios.find((u) => u.id === f.usuario_id) ?? null)}
+            onClick={() => void abrirPerfil(f.usuario_id)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                setPerfilSeleccionado(db.usuarios.find((u) => u.id === f.usuario_id) ?? null);
+                void abrirPerfil(f.usuario_id);
               }
             }}
           >

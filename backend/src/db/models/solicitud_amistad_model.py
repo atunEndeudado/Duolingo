@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.sql import func
 
@@ -14,6 +16,6 @@ class Solicitud_amistad(Base):
     usuario_receptor = Column(Integer, nullable=False)
     # Estado actual de la solicitud, por ejemplo:
     # "pendiente", "aceptada" o "rechazada".
-    estado = Column (String, nullable=False)
+    estado = Column(String, nullable=False, default="pendiente", server_default="pendiente")
     # Fecha y hora en la que se registró o actualizó la solicitud.
-    fecha = Column (DateTime, nullable=False)
+    fecha = Column(DateTime, nullable=False, default=datetime.now, server_default=func.now())

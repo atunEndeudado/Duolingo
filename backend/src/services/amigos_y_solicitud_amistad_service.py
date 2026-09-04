@@ -28,7 +28,9 @@ class SolicitudAmistadService:
             raise ValueError("Los usuarios ya son amigos")
         solicitud = Solicitud_amistad(
             usuario_solicitante=dto.usuario_solicitante,
-            usuario_receptor=dto.usuario_receptor
+            usuario_receptor=dto.usuario_receptor,
+            estado="pendiente",
+            fecha=datetime.now(),
         )
         solicitud = self.repository.crear(solicitud)
         return to_solicitud_amistad_response(solicitud)

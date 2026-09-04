@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, Check, RotateCcw, ArrowLeft } from "lucide-react";
 
 import * as api from "@/lib/api";
@@ -38,11 +38,22 @@ function CursoDetalle() {
   const { cursoId } = Route.useParams();
   const { db, usuario, completarLeccion, inscribirse } = useApp();
   const [abierta, setAbierta] = useState<Leccion | null>(null);
+  const [preguntasAbiertas, setPreguntasAbiertas] = useState<Awaited<ReturnType<typeof api.listarPreguntasPorLeccion>>>([]);
 
   const curso = db.cursos.find((c) => c.id === cursoId);
   if (!curso) throw notFound();
   const idioma = api.idiomaDeCurso(db, cursoId);
   const lecciones = api.leccionesDeCurso(db, cursoId);
+
+  useEffect(() => {
+    if (!abierta) {
+      setPreguntasAbiertas([]);
+      return;
+    }
+    void api.listarPreguntasPorLeccion(abierta.id, usuario?.id)
+      .then(setPreguntasAbiertas)
+      .catch(() => setPreguntasAbiertas(api.preguntasDeLeccion(db, abierta.id, Boolean(usuario?.premium))));
+  }, [abierta, db, usuario?.id, usuario?.premium]);
 
   const progreso = usuario ? api.progresoCurso(db, usuario.id, cursoId) : null;
   const inscripto = Boolean(progreso?.ok);
@@ -165,7 +176,7 @@ function CursoDetalle() {
             <LeccionQuiz
               key={abierta.id}
               leccion={abierta}
-              preguntas={api.preguntasDeLeccion(db, abierta.id, Boolean(usuario?.premium))}
+              preguntas={preguntasAbiertas}
               premiumBloqueadas={
                 usuario?.premium ? 0 : api.preguntasPremiumDeLeccion(db, abierta.id)
               }

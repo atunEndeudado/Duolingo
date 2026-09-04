@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Date, Integer
 from sqlalchemy.sql import func
 
 from src.db.connection import Base
@@ -7,7 +7,7 @@ from src.db.connection import Base
 class Amigos(Base):
     __tablename__ = "amigos"
     # Identificador del primer usuario de la amistad.
-    usuario_a = Column(Integer, nullable=False)
-    usuario_b = Column(Integer, nullable=False)
+    usuario_a = Column(Integer, primary_key=True)
+    usuario_b = Column(Integer, primary_key=True)
         # Fecha y hora en la que se creó la amistad.
-    fecha = Column(DateTime, nullable=False)
+    fecha = Column(Date, nullable=False, server_default=func.current_date())

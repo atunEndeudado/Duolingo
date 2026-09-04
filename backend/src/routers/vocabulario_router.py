@@ -14,15 +14,25 @@ def get_vocabulario_service(db: Session = Depends(get_db)) -> VocabularioService
  
 @router_vocabulario.get("/", response_model=list[VocabularioResponseDTO])
 def listar_palabras(
-    idioma_id: int | None = None,
     nivel: str | None = None,
     service: VocabularioService = Depends(get_vocabulario_service),
 ):
-    return service.listar_palabras(idioma_id, nivel)
+    return service.listar_palabras(nivel)
  
 @router_vocabulario.post("/", response_model=VocabularioResponseDTO, status_code=201)
 def crear_palabra(dto: CreateVocabularioDTO, service: VocabularioService = Depends(get_vocabulario_service)):
-    return service.crear_palabra(dto)
+    try:
+        return service.crear_palabra(dto)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))
+
+
+@router_vocabulario.delete("/{vocabulario_id}", status_code=status.HTTP_204_NO_CONTENT, name="eliminar_vocabulario")
+def eliminar_vocabulario(vocabulario_id: int, service: VocabularioService = Depends(get_vocabulario_service)):
+    try:
+        service.eliminar_palabra(vocabulario_id)
+    except ValueError as error:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
  
  
 @router_vocabulario.get("/multiple-choice/{nivel}", response_model=list[VocabularioResponseDTO])

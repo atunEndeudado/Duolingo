@@ -62,9 +62,9 @@ CREATE INDEX idx_solicitud_receptor ON solicitud_amistad(usuario_receptor);
 CREATE TABLE curso (
     id        SERIAL PRIMARY KEY,
     idioma_id INTEGER NOT NULL REFERENCES idioma(id) ON DELETE CASCADE,
-    nivel     VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
-    UNIQUE (idioma_id, nivel)
-);
+    traduccion  VARCHAR(100),
+    nivel       VARCHAR(20) NOT NULL CHECK (nivel IN ('A1','A2','B1','B2','C1','C2')),
+    idioma_id   INTEGER REFERENCES idioma(id) ON DELETE CASCADE
 
 -- ============================================================
 -- TABLA: leccion
@@ -89,6 +89,7 @@ CREATE TABLE preguntas (
     direccion   VARCHAR(30) NOT NULL DEFAULT 'nativo_a_curso'
                 CHECK (direccion IN ('nativo_a_curso', 'curso_a_nativo')),
     es_premium  BOOLEAN NOT NULL DEFAULT FALSE,
+    pares       JSONB,
     UNIQUE (leccion_id, orden)
 );
 

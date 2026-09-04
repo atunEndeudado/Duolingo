@@ -21,7 +21,7 @@ export interface Idioma {
 
 export interface Curso {
   id: string;
-  idioma_id: string;
+  idioma_id?: string;
   nivel: Nivel;
 }
 
