@@ -1,15 +1,17 @@
+import os
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
-import os
 import mercadopago
 from sqlalchemy.orm import Session
+
 from src.config.env import settings
-from src.db.models.usuario_model import Usuario
 from src.db.models.suscripcion_model import Suscripcion
+from src.db.models.usuario_model import Usuario
 
 ACCESS_TOKEN = settings.MERCADOPAGO_ACCESS_TOKEN
 sdk = mercadopago.SDK(ACCESS_TOKEN)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:8080").rstrip("/")
+
 PREFERENCIA_MOCK = {
     "preference_id": "pref_mock_123",
     "init_point": f"{FRONTEND_URL}/pago-exitoso",
@@ -21,6 +23,7 @@ PLANES = {
     "meses_3": {"title": "Tubolingo Premium - 3 Meses", "price": 12999.00, "meses": 3},
     "año_1": {"title": "Tubolingo Premium - 1 Año", "price": 39999.00, "meses": 12},
 }
+
 
 class PagoService:
     def __init__(self, db: Session):
@@ -75,7 +78,7 @@ class PagoService:
             payment_info = sdk.payment().get(payment_id)["response"]
 
             if payment_info.get("status") == "approved":
-                external_ref = payment_info.get("external_reference")  # ej: "1:mes_1"
+                external_ref = payment_info.get("external_reference")
                 usuario_id_str, plan_key = external_ref.split(":")
                 usuario_id = int(usuario_id_str)
 
@@ -88,7 +91,6 @@ class PagoService:
                     ahora = datetime.now(timezone.utc)
                     meses_a_sumar = plan["meses"]
 
-                    # Si ya es premium vigente, extendemos la fecha actual
                     if usuario.suscripcion_hasta and usuario.suscripcion_hasta.tzinfo is None:
                         usuario.suscripcion_hasta = usuario.suscripcion_hasta.replace(tzinfo=timezone.utc)
 
@@ -99,11 +101,9 @@ class PagoService:
 
                     fecha_fin = fecha_inicio + relativedelta(months=meses_a_sumar)
 
-                    # 1. Actualizar usuario
                     usuario.es_premium = True
                     usuario.suscripcion_hasta = fecha_fin
 
-                    # 2. Guardar registro histórico
                     nueva_sub = Suscripcion(
                         usuario_id=usuario_id,
                         payment_id=str(payment_id),
@@ -111,9 +111,52 @@ class PagoService:
                         monto=plan["price"],
                         estado="aprobado",
                         fecha_inicio=fecha_inicio,
-                        fecha_fin=fecha_fin
+                        fecha_fin=fecha_fin,
                     )
                     self.db.add(nueva_sub)
                     self.db.commit()
                     return True
         return False
+
+    def activar_premium_usuario(self, usuario_id: int, plan_key: str = "mes_1"):
+        plan = PLANES.get(plan_key)
+        if not plan:
+            raise ValueError("Plan no válido")
+
+        usuario = self.db.query(Usuario).filter(Usuario.id == usuario_id).first()
+        if not usuario:
+            raise ValueError("Usuario no encontrado")
+
+        ahora = datetime.now(timezone.utc)
+        meses_a_sumar = plan["meses"]
+
+        if usuario.suscripcion_hasta and usuario.suscripcion_hasta.tzinfo is None:
+            usuario.suscripcion_hasta = usuario.suscripcion_hasta.replace(tzinfo=timezone.utc)
+
+        if usuario.suscripcion_hasta and usuario.suscripcion_hasta > ahora:
+            fecha_inicio = usuario.suscripcion_hasta
+        else:
+            fecha_inicio = ahora
+
+        fecha_fin = fecha_inicio + relativedelta(months=meses_a_sumar)
+
+        usuario.es_premium = True
+        usuario.suscripcion_hasta = fecha_fin
+
+        nueva_sub = Suscripcion(
+            usuario_id=usuario_id,
+            payment_id="manual_activation",
+            plan=plan_key,
+            monto=plan["price"],
+            estado="aprobado",
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+        )
+        self.db.add(nueva_sub)
+        self.db.commit()
+
+        return {
+            "mensaje": "Suscripción Premium activada exitosamente",
+            "es_premium": usuario.es_premium,
+            "suscripcion_hasta": usuario.suscripcion_hasta,
+        }

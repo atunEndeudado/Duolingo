@@ -26,7 +26,7 @@ interface AppContextValue {
     variable: "racha" | "cantidad_amigos" | "xp_total" | "xp_dia";
     valor: number;
   }) => Promise<boolean>;
-  eliminarInsignia: (insigniaId: string) => Promise<boolean>;
+  eliminarInsignia: (insigniaId: string | number) => Promise<boolean>;
   crearIdioma: (body: { nombre: string; codigo: string }) => Promise<boolean>;
   crearVocabulario: (body: {
     palabra: string;
@@ -41,9 +41,9 @@ interface AppContextValue {
     direccion: DireccionPregunta;
     es_premium: boolean;
   }) => Promise<boolean>;
-  recargarDatos: (usuarioId?: string) => Promise<void>;
+  recargarDatos: (usuarioId?: string | number) => Promise<void>;
   completarLeccion: (leccion_id: string, puntaje: number) => Promise<boolean>;
-  activarPremium: (plan: string) => void;
+  activarPremium: (plan?: string) => Promise<boolean>;
   cancelarPremium: () => void;
   enviarSolicitud: (amigo_id: string) => Promise<boolean>;
   responderSolicitud: (solicitud_id: string, acepta: boolean) => Promise<boolean>;
@@ -55,7 +55,7 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-function decodeJwtPayload(token: string): { sub?: string; email?: string; nombre?: string; es_admin?: boolean } | null {
+function decodeJwtPayload(token: string): { sub?: string; email?: string; nombre?: string; es_admin?: boolean; es_premium?: boolean; premium?: boolean } | null {
   try {
     const base64Url = token.split(".")[1];
     if (!base64Url) return null;
@@ -72,35 +72,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [db, setDb] = useState<DB>(dbInicial);
   const token = AuthService.getToken();
 
-  const recargarDatos = useCallback(async (usuarioId?: string) => {
+  const recargarDatos = useCallback(async (usuarioId?: string | number) => {
     const idiomas = await api.listarIdiomas();
     const idiomasUnicos = [...new Map(idiomas.map((idioma) => [idioma.codigo.toLowerCase(), idioma])).values()];
     const cursos = (await Promise.all(idiomasUnicos.map((idioma) => api.listarCursosPorIdioma(idioma.id)))).flat();
     const cursosUnicos = [...new Map(cursos.map((curso) => [curso.id, curso])).values()];
     const lecciones = (
-      await Promise.all(cursosUnicos.map((curso) => api.listarLeccionesPorCurso(curso.id, usuarioId)))
+      await Promise.all(cursosUnicos.map((curso) => api.listarLeccionesPorCurso(curso.id, String(usuarioId))))
     ).flat();
     const leccionesUnicas = [...new Map(lecciones.map((leccion) => [leccion.id, leccion])).values()];
     const preguntasPorLeccion = await Promise.all(
-      leccionesUnicas.map((leccion) => api.listarPreguntasPorLeccion(leccion.id, usuarioId).catch(() => [])),
+      leccionesUnicas.map((leccion) => api.listarPreguntasPorLeccion(leccion.id, String(usuarioId)).catch(() => [])),
     );
     const insignias = await api.listarInsigniasBackend();
-    let perfil: Usuario | null = null;
+    let perfil: (Usuario & { es_premium?: boolean; premium?: boolean }) | null = null;
     let progresos = [] as DB["progresos"];
     let usuarioInsignias = [] as DB["usuario_insignias"];
     let usuarioCursos = [] as DB["usuario_cursos"];
+    
     if (usuarioId) {
       try {
         [perfil, progresos, usuarioInsignias, usuarioCursos] = await Promise.all([
-          api.obtenerUsuarioBackend(usuarioId),
-          api.listarProgresoPorUsuario(usuarioId),
-          api.listarInsigniasUsuarioBackend(usuarioId),
-          api.listarInscripcionesUsuarioBackend(usuarioId),
+          api.obtenerUsuarioBackend(Number(usuarioId)),
+          api.listarProgresoPorUsuario(String(usuarioId)),
+          api.listarInsigniasUsuarioBackend(String(usuarioId)),
+          api.listarInscripcionesUsuarioBackend(String(usuarioId)),
         ]);
       } catch {
         // El catálogo no depende de que el perfil esté disponible en este momento.
       }
     }
+
+    // Normalización: mapear es_premium del backend hacia premium en el frontend
+    const perfilNormalizado: Usuario | null = perfil
+      ? {
+          ...perfil,
+          id: String(perfil.id),
+          premium: Boolean(perfil.premium ?? perfil.es_premium),
+          es_premium: Boolean(perfil.premium ?? perfil.es_premium),
+        }
+      : null;
 
     setDb((prev) => ({
       ...prev,
@@ -112,27 +123,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
       usuario_insignias: usuarioInsignias,
       usuario_cursos: usuarioCursos,
       progresos,
-      usuarios: perfil ? [...prev.usuarios.filter((item) => item.id !== perfil.id), perfil] : prev.usuarios,
-      usuario_actual: perfil?.id ?? prev.usuario_actual,
+      usuarios: perfilNormalizado
+        ? [...prev.usuarios.filter((item) => String(item.id) !== String(perfilNormalizado.id)), perfilNormalizado]
+        : prev.usuarios,
+      usuario_actual: perfilNormalizado?.id ?? prev.usuario_actual,
     }));
   }, []);
 
   useEffect(() => {
     const usuarioId = decodeJwtPayload(token ?? "")?.sub;
     void recargarDatos(usuarioId).catch(() => {
-        setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
+      setDb((prev) => ({ ...prev, idiomas: [], cursos: [] }));
     });
   }, [recargarDatos, token]);
 
   const usuario = useMemo(() => {
-    const usuarioDb = db.usuarios.find((u) => u.id === db.usuario_actual) ?? null;
-    if (usuarioDb) return usuarioDb;
+    const usuarioDb = db.usuarios.find((u) => String(u.id) === String(db.usuario_actual)) ?? null;
+    if (usuarioDb) {
+      const esPrem = Boolean(usuarioDb.premium ?? (usuarioDb as unknown as { es_premium?: boolean }).es_premium);
+      return {
+        ...usuarioDb,
+        premium: esPrem,
+        es_premium: esPrem,
+      };
+    }
 
     if (!token) return null;
 
     const payload = decodeJwtPayload(token);
     if (!payload?.email) return null;
 
+    const esPremPayload = Boolean(payload.premium ?? payload.es_premium);
     return {
       id: String(payload.sub ?? "me"),
       email: String(payload.email),
@@ -140,7 +161,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       xp_total: 0,
       racha_dias: 0,
       fecha_ultima_actividad: null,
-      premium: false,
+      premium: esPremPayload,
+      es_premium: esPremPayload,
       es_admin: payload.es_admin ?? false,
     } satisfies Usuario;
   }, [db.usuarios, db.usuario_actual, token]);
@@ -265,18 +287,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const eliminarInsignia = useCallback(async (insigniaId: string) => {
+  const eliminarInsignia = useCallback(async (insigniaId: string | number) => {
     try {
       await api.eliminarInsignia(insigniaId);
       setDb((prev) => ({
         ...prev,
-        insignias: prev.insignias.filter((insignia) => insignia.id !== insigniaId),
-        usuario_insignias: prev.usuario_insignias.filter((item) => item.insignia_id !== insigniaId),
+        insignias: prev.insignias.filter(
+          (insignia) => String(insignia.id) !== String(insigniaId)
+        ),
+        usuario_insignias: prev.usuario_insignias.filter(
+          (item) => String(item.insignia_id) !== String(insigniaId)
+        ),
       }));
       toast.success("Insignia eliminada");
       return true;
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la insignia");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo eliminar la insignia"
+      );
       return false;
     }
   }, []);
@@ -284,7 +312,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const crearIdioma = useCallback(
     async (body: { nombre: string; codigo: string }) => {
       try {
-        const idioma = await api.crearIdiomaBackend(body);
+        await api.crearIdiomaBackend(body);
         await recargarDatos();
         toast.success("Idioma creado");
         return true;
@@ -319,20 +347,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [recargarDatos, usuario],
   );
 
+  // 🔴 ESTA ES LA FUNCIÓN CLAVE CORREGIDA
   const activarPremium = useCallback(
-    (plan: string) => {
-      if (!usuario) return;
-      setDb((prev) => {
-        const res = api.activarPremium(prev, usuario.id);
-        if (!res.ok) {
-          toast.error(res.error);
-          return prev;
-        }
-        toast.success(`Pago aprobado · plan ${plan}. ¡Preguntas Premium desbloqueadas!`);
-        return res.data.db;
-      });
+    async (plan = "mensual") => {
+      if (!usuario?.id) return false;
+      try {
+        // 1. Llamar a la API real de FastAPI
+        await api.activarPremiumManualApi(Number(usuario.id));
+        
+        // 2. Recargar inmediatamente los datos desde el Backend
+        await recargarDatos(usuario.id);
+        
+        toast.success(`¡Suscripción Premium activada (${plan})!`);
+        return true;
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "No se pudo activar Premium");
+        return false;
+      }
     },
-    [usuario],
+    [usuario?.id, recargarDatos],
   );
 
   const cancelarPremium = useCallback(() => {

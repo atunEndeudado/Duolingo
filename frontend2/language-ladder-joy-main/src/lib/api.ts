@@ -159,6 +159,17 @@ export async function crearIdiomaBackend(body: { nombre: string; codigo: string 
   return mapBackendIdioma(data);
 }
 
+export async function eliminarIdiomaApi(idiomaId: number): Promise<void> {
+  const res = await fetch(`${API_URL}/idiomas/${idiomaId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al eliminar el idioma");
+  }
+}
+
 export async function listarCursosPorIdioma(idiomaId: string): Promise<Curso[]> {
   const data = await request<any[]>(`/cursos/idioma/${idiomaId}`);
   return (data ?? []).map(mapBackendCurso);
@@ -213,7 +224,7 @@ export async function crearInsigniaBackend(body: {
   return mapBackendInsignia(data);
 }
 
-export async function eliminarInsignia(insigniaId: string): Promise<void> {
+export async function eliminarInsignia(insigniaId: number | string): Promise<void> {
   await request<void>(`/insignias/${insigniaId}`, { method: "DELETE" });
 }
 
@@ -222,6 +233,23 @@ export async function listarInsigniasUsuarioBackend(usuarioId: string) {
   return (data ?? []).map(mapBackendUsuarioInsignia);
 }
 
+import { AuthService } from "@/services/authService"; // o la ubicación de tu AuthService
+
+export async function activarPremiumManualApi(usuarioId: number | string): Promise<void> {
+  const token = AuthService.getToken(); // O localStorage.getItem("token")
+  
+  const response = await fetch(`http://localhost:8000/usuarios/${usuarioId}/activar-premium`, {
+    method: "POST", // O PUT según tu endpoint en FastAPI
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`, // ⚠️ Esencial si FastAPI requiere autenticación
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Error al activar Premium en el backend");
+  }
+}
 export async function crearUsuarioBackend(body: { email: string; nombre: string; password: string }) {
   const data = await request<any>(`/usuarios/`, {
     method: "POST",
@@ -648,27 +676,57 @@ export function enviarSolicitud(
   };
   return ok({ db: { ...db, solicitudes: [...db.solicitudes, solicitud] } });
 }
+export async function listarSolicitudesPendientesApi(
+  usuario_id: number | string
+): Promise<SolicitudAmistad[]> {
+  const res = await fetch(`${API_URL}/amistad/solicitudes/pendientes/${usuario_id}`);
 
+  if (!res.ok) {
+    return [];
+  }
+
+  return res.json();
+}
+
+export async function enviarSolicitudAmistad(
+  usuario_solicitante: number | string,
+  usuario_receptor: number | string
+): Promise<SolicitudAmistad> {
+  const res = await fetch(`${API_URL}/amistad/solicitudes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      usuario_solicitante: Number(usuario_solicitante),
+      usuario_receptor: Number(usuario_receptor),
+    }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al enviar la solicitud de amistad");
+  }
+
+  return res.json();
+}
 /** El destinatario acepta o rechaza. La amistad solo se crea si acepta. */
-export function responderSolicitud(
-  db: DB,
-  solicitud_id: string,
-  acepta: boolean,
-): Resultado<{ db: DB; solicitud: SolicitudAmistad }> {
-  const solicitud = db.solicitudes.find((s) => s.id === solicitud_id);
-  if (!solicitud) return err(404, "Solicitud inexistente");
-  if (solicitud.estado !== "pendiente") return err(409, "La solicitud ya fue respondida");
+export async function responderSolicitud(
+  solicitud_id: number | string,
+  acepta: boolean
+): Promise<SolicitudAmistad> {
+  const estado = acepta ? "aceptada" : "rechazada";
 
-  const actualizada: SolicitudAmistad = { ...solicitud, estado: acepta ? "aceptada" : "rechazada" };
-  const solicitudes = db.solicitudes.map((s) => (s.id === solicitud_id ? actualizada : s));
-  const amigos = acepta
-    ? [
-        ...db.amigos,
-        { usuario_a: solicitud.de, usuario_b: solicitud.para, fecha: new Date().toISOString() },
-      ]
-    : db.amigos;
+  const res = await fetch(`${API_URL}/amistad/solicitudes/${solicitud_id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ estado }),
+  });
 
-  return ok({ db: { ...db, solicitudes, amigos }, solicitud: actualizada });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al responder la solicitud");
+  }
+
+  return res.json();
 }
 
 export function cancelarSolicitud(db: DB, solicitud_id: string): DB {
@@ -935,10 +993,15 @@ export async function listarSolicitudesBackend(usuarioId: string) {
   return (data ?? []).map((item) => ({ id: asStringId(item.id), de: asStringId(item.usuario_solicitante), para: asStringId(item.usuario_receptor), estado: item.estado, fecha: String(item.fecha ?? "") }));
 }
 
-export async function responderSolicitudBackend(id: string, acepta: boolean) {
-  return request<any>(`/amistad/solicitudes/${id}`, { method: "PATCH", body: JSON.stringify({ estado: acepta ? "aceptada" : "rechazada" }) });
+export async function responderSolicitudBackend(id: string | number, acepta: boolean) {
+  return request<any>(`/amistad/solicitudes/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ estado: acepta ? "aceptada" : "rechazada" }),
+  });
 }
-
 export async function eliminarVocabulario(vocabularioId: string): Promise<void> {
   await request<void>(`/vocabulario/${vocabularioId}`, { method: "DELETE" });
 }

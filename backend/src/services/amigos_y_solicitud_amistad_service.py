@@ -26,6 +26,12 @@ class SolicitudAmistadService:
             raise ValueError("Un usuario no puede enviarse una solicitud a sí mismo")
         if self.amigo_repository.son_amigos(dto.usuario_solicitante, dto.usuario_receptor):
             raise ValueError("Los usuarios ya son amigos")
+        
+        # Validar si ya existe una solicitud pendiente
+        solicitud_existente = self.repository.obtener_pendiente(dto.usuario_solicitante, dto.usuario_receptor)
+        if solicitud_existente:
+            raise ValueError("Ya existe una solicitud de amistad pendiente entre estos usuarios")
+
         solicitud = Solicitud_amistad(
             usuario_solicitante=dto.usuario_solicitante,
             usuario_receptor=dto.usuario_receptor,

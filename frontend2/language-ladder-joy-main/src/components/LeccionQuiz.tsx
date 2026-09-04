@@ -5,7 +5,7 @@ import { Check, Crown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import type { Leccion, ParMatch, Pregunta } from "@/lib/types";
+import type { Leccion, Pregunta } from "@/lib/types";
 
 interface Props {
   leccion: Leccion;
@@ -36,11 +36,6 @@ function mezclar<T>(items: T[]) {
   return resultado;
 }
 
-/**
- * Quiz real de la lección: entre 5 y 10 ejercicios de tres tipos
- * (multiple choice, match de columnas y escritura libre).
- * El puntaje enviado al backend es el porcentaje de ejercicios correctos.
- */
 export function LeccionQuiz({
   leccion,
   preguntas,
@@ -53,7 +48,7 @@ export function LeccionQuiz({
   const [correctas, setCorrectas] = useState(0);
   const [terminado, setTerminado] = useState(false);
 
-  // estado por ejercicio
+  // Estado por ejercicio
   const [elegida, setElegida] = useState<number | null>(null);
   const [texto, setTexto] = useState("");
   const [verificado, setVerificado] = useState(false);
@@ -69,7 +64,6 @@ export function LeccionQuiz({
     [correctas, total],
   );
   const pares = pregunta?.pares ?? [];
-  // Cada columna se mezcla por separado al cambiar de pregunta.
   const derecha = useMemo(() => mezclar(pares), [pregunta?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const izquierda = useMemo(() => mezclar(pares), [pregunta?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const bancoPalabras = useMemo(() => {
@@ -82,7 +76,6 @@ export function LeccionQuiz({
   }
 
   const respuestaCorrecta = pregunta.respuesta ?? "";
-
 
   const acierto =
     pregunta.tipo === "opcion"
@@ -129,6 +122,9 @@ export function LeccionQuiz({
     setOracionIndices((actual) => [...actual, index]);
   }
 
+  // SI EL USUARIO ES PREMIUM, O SI NO HAY PREGUNTAS BLOQUEADAS, NO MOSTRAMOS MENSAJE
+const mostrarMensajePremium = !esPremium && premiumBloqueadas > 0;
+
   if (terminado) {
     const aprobado = puntaje >= 60;
     return (
@@ -141,12 +137,14 @@ export function LeccionQuiz({
             ? `Aprobaste: se suman +${leccion.xp_recompensa} XP y cuenta para tu racha.`
             : "Necesitás 60 para aprobar. Podés reintentar."}
         </p>
-        {!esPremium && premiumBloqueadas > 0 ? (
+
+        {mostrarMensajePremium && (
           <p className="rounded-2xl bg-badge/15 p-3 text-xs font-bold text-badge-foreground">
             <Crown className="mr-1 inline size-4" />
             Hay {premiumBloqueadas} preguntas más en esta lección con Premium.
           </p>
-        ) : null}
+        )}
+
         <Button className="shadow-pop" onClick={() => onFinalizar(puntaje)}>
           Salir
         </Button>
@@ -178,7 +176,6 @@ export function LeccionQuiz({
         <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
           <span>
             Ejercicio {indice + 1} de {total} · {etiquetaTipo}
-            {pregunta.premium ? " · Premium" : ""}
           </span>
           <span>{correctas} correctas</span>
         </div>
@@ -261,7 +258,7 @@ export function LeccionQuiz({
                           ? normalizar(uniones[p.es] ?? "") === normalizar(pares.find((par) => par.es === p.es)?.tr ?? "")
                             ? "border-primary bg-primary/10 opacity-60"
                             : "border-destructive bg-destructive/10"
-                            : "border-border hover:bg-secondary"
+                          : "border-border hover:bg-secondary"
                     }`}
                   >
                     <span className="block">{p.es}</span>
@@ -312,7 +309,7 @@ export function LeccionQuiz({
               <div className="flex flex-wrap gap-2">
                 {oracionIndices.map((wordIndex, index) => (
                   <span key={`${wordIndex}-${index}`} className="rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold">
-                  {bancoPalabras.find((item) => item.index === wordIndex)?.palabra}
+                    {bancoPalabras.find((item) => item.index === wordIndex)?.palabra}
                   </span>
                 ))}
               </div>
@@ -359,7 +356,8 @@ export function LeccionQuiz({
         </p>
       ) : null}
 
-      {!esPremium && premiumBloqueadas > 0 && indice === 0 ? (
+      {/* Cartel de aviso durante las preguntas (Solo para usuarios Free) */}
+      {mostrarMensajePremium && indice === 0 && (
         <p className="text-xs text-muted-foreground">
           <Crown className="mr-1 inline size-3.5 text-badge" />
           {premiumBloqueadas} preguntas extra bloqueadas.{" "}
@@ -367,7 +365,7 @@ export function LeccionQuiz({
             Desbloquear con Premium
           </Link>
         </p>
-      ) : null}
+      )}
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onCerrar}>

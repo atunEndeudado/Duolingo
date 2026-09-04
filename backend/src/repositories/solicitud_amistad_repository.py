@@ -1,30 +1,53 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, and_
 
 from src.db.models.solicitud_amistad_model import Solicitud_amistad
- 
- 
+
+
 class SolicitudAmistadRepository:
     def __init__(self, db: Session):
         self.db = db
- 
+
     def crear(self, solicitud: Solicitud_amistad) -> Solicitud_amistad:
         self.db.add(solicitud)
         self.db.commit()
         self.db.refresh(solicitud)
         return solicitud
- 
+
     def obtener_por_id(self, solicitud_id: int) -> Solicitud_amistad | None:
         return self.db.get(Solicitud_amistad, solicitud_id)
- 
+
+    def obtener_pendiente(
+        self, usuario_solicitante: int, usuario_receptor: int
+    ) -> Solicitud_amistad | None:
+        """Busca si existe una solicitud pendiente entre ambos usuarios."""
+        query = select(Solicitud_amistad).where(
+            Solicitud_amistad.estado == "pendiente",
+            or_(
+                and_(
+                    Solicitud_amistad.usuario_solicitante == usuario_solicitante,
+                    Solicitud_amistad.usuario_receptor == usuario_receptor,
+                ),
+                and_(
+                    Solicitud_amistad.usuario_solicitante == usuario_receptor,
+                    Solicitud_amistad.usuario_receptor == usuario_solicitante,
+                ),
+            ),
+        )
+        return self.db.execute(query).scalar_one_or_none()
+
     def listar_pendientes_de(self, usuario_receptor: int) -> list[Solicitud_amistad]:
-        return self.db.execute(
-            select(Solicitud_amistad).where(
-                Solicitud_amistad.usuario_receptor == usuario_receptor,
-                Solicitud_amistad.estado == "pendiente"
+        return (
+            self.db.execute(
+                select(Solicitud_amistad).where(
+                    Solicitud_amistad.usuario_receptor == usuario_receptor,
+                    Solicitud_amistad.estado == "pendiente",
+                )
             )
-        ).scalars().all()
- 
+            .scalars()
+            .all()
+        )
+
     def actualizar(self, solicitud: Solicitud_amistad) -> Solicitud_amistad:
         self.db.commit()
         self.db.refresh(solicitud)

@@ -4,7 +4,6 @@ import { Lock, Check, RotateCcw, ArrowLeft } from "lucide-react";
 
 import * as api from "@/lib/api";
 import { useApp } from "@/lib/store";
-import { requireAuth } from "@/lib/routeGuards";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { LeccionQuiz } from "@/components/LeccionQuiz";
@@ -33,30 +32,42 @@ export const Route = createFileRoute("/cursos/$cursoId")({
   component: CursoDetalle,
 });
 
-// HU3/HU4/HU5/HU11 — GET /cursos/{id}/lecciones · POST /lecciones/{id}/completar
 function CursoDetalle() {
   const { cursoId } = Route.useParams();
   const { db, usuario, completarLeccion, inscribirse } = useApp();
   const [abierta, setAbierta] = useState<Leccion | null>(null);
-  const [preguntasAbiertas, setPreguntasAbiertas] = useState<Awaited<ReturnType<typeof api.listarPreguntasPorLeccion>>>([]);
+  const [preguntasAbiertas, setPreguntasAbiertas] = useState<
+    Awaited<ReturnType<typeof api.listarPreguntasPorLeccion>>
+  >([]);
 
   const curso = db.cursos.find((c) => c.id === cursoId);
   if (!curso) throw notFound();
   const idioma = api.idiomaDeCurso(db, cursoId);
   const lecciones = api.leccionesDeCurso(db, cursoId);
 
+  // Buscamos directamente en la DB local para evitar inconsistencias de estado
+  const usuarioActual = db.usuarios.find((u) => u.id === usuario?.id) || usuario;
+
+  // Evaluamos todas las formas posibles del flag premium
+  const esUsuarioPremium = Boolean(
+    usuarioActual?.premium ||
+      (usuarioActual as { es_premium?: boolean })?.es_premium ||
+      (usuarioActual as { isPremium?: boolean })?.isPremium ||
+      (usuarioActual as { rol?: string })?.rol === "premium",
+  );
+
   useEffect(() => {
     if (!abierta) {
       setPreguntasAbiertas([]);
       return;
     }
-    void api.listarPreguntasPorLeccion(abierta.id, usuario?.id)
+    void api
+      .listarPreguntasPorLeccion(abierta.id, usuario?.id)
       .then(setPreguntasAbiertas)
-      .catch(() => setPreguntasAbiertas(api.preguntasDeLeccion(db, abierta.id, Boolean(usuario?.premium))));
-  }, [abierta, db, usuario?.id, usuario?.premium]);
+      .catch(() => setPreguntasAbiertas(api.preguntasDeLeccion(db, abierta.id, esUsuarioPremium)));
+  }, [abierta, db, usuario?.id, esUsuarioPremium]);
 
   const progreso = usuario ? api.progresoCurso(db, usuario.id, cursoId) : null;
-  const inscripto = Boolean(progreso?.ok);
 
   return (
     <div className="space-y-6">
@@ -126,7 +137,13 @@ function CursoDetalle() {
                       : "bg-locked text-muted-foreground"
                 }`}
               >
-                {completada ? <Check className="size-5" /> : desbloqueada ? l.orden : <Lock className="size-4" />}
+                {completada ? (
+                  <Check className="size-5" />
+                ) : desbloqueada ? (
+                  l.orden
+                ) : (
+                  <Lock className="size-4" />
+                )}
               </span>
 
               <div className="min-w-40 flex-1">
@@ -136,7 +153,9 @@ function CursoDetalle() {
                 <p className="text-xs text-muted-foreground">
                   +{l.xp_recompensa} XP
                   {intentos.length > 0 ? ` · ${intentos.length} intento(s) · mejor ${mejor}` : ""}
-                  {!desbloqueada && !completada && l.orden > 1 ? " · requiere la lección anterior" : ""}
+                  {!desbloqueada && !completada && l.orden > 1
+                    ? " · requiere la lección anterior"
+                    : ""}
                 </p>
               </div>
 
@@ -174,13 +193,13 @@ function CursoDetalle() {
 
           {abierta ? (
             <LeccionQuiz
-              key={abierta.id}
+              key={`${abierta.id}-${usuario?.id}-${esUsuarioPremium ? "premium" : "free"}`}
               leccion={abierta}
               preguntas={preguntasAbiertas}
               premiumBloqueadas={
-                usuario?.premium ? 0 : api.preguntasPremiumDeLeccion(db, abierta.id)
+                esUsuarioPremium ? 0 : api.preguntasPremiumDeLeccion(db, abierta.id)
               }
-              esPremium={Boolean(usuario?.premium)}
+              esPremium={esUsuarioPremium}
               onCerrar={() => setAbierta(null)}
               onFinalizar={async (p) => {
                 if (await completarLeccion(abierta.id, p)) setAbierta(null);

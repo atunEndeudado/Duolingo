@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Flame, Zap, UserPlus, UserMinus, Check, X, Clock, Crown, Search, LoaderCircle } from "lucide-react";
 
@@ -26,7 +26,6 @@ export const Route = createFileRoute("/amigos")({
   component: Amigos,
 });
 
-// HU8 — POST /usuarios/{id}/solicitudes · PATCH /solicitudes/{id} · GET /usuarios/{id}/amigos
 function Amigos() {
   const {
     db,
@@ -38,6 +37,7 @@ function Amigos() {
     buscarUsuarios,
     obtenerSugerencias,
   } = useApp();
+
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<Usuario[]>([]);
   const [sugerencias, setSugerencias] = useState<Usuario[]>([]);
@@ -46,8 +46,56 @@ function Amigos() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
 
+  // Estados remotos del backend
+  const [recibidasBackend, setRecibidasBackend] = useState<any[]>([]);
+  const [misAmigos, setMisAmigos] = useState<Usuario[]>([]);
+
+  // Cargar solicitudes pendientes e hidratar datos de usuario solicitante
+  const cargarSolicitudes = useCallback(async () => {
+    if (!usuario?.id) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:8020/api/amistad/solicitudes/pendientes/${usuario.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const listaRaw = Array.isArray(data) ? data : [];
+
+        // Para cada solicitud, traemos la info del usuario solicitante si solo viene el ID
+        const solicitudesConUsuario = await Promise.all(
+          listaRaw.map(async (item) => {
+            const solicitanteId = item.usuario_solicitante || item.usuario_id || item.solicitante_id;
+            
+            if (item.solicitante_nombre || item.usuario?.nombre) {
+              return item;
+            }
+
+            if (solicitanteId) {
+              try {
+                const uRes = await fetch(`http://127.0.0.1:8020/api/usuarios/${solicitanteId}`);
+                if (uRes.ok) {
+                  const uData = await uRes.json();
+                  return { ...item, solicitante_info: uData };
+                }
+              } catch {
+                // Silenciosamente continúa si falla
+              }
+            }
+            return item;
+          })
+        );
+
+        setRecibidasBackend(solicitudesConUsuario);
+      }
+    } catch (error) {
+      console.error("Error al obtener solicitudes pendientes:", error);
+    }
+  }, [usuario?.id]);
+
   useEffect(() => {
-    if (!usuario || !/^\d+$/.test(usuario.id)) {
+    cargarSolicitudes();
+  }, [cargarSolicitudes]);
+
+  useEffect(() => {
+    if (!usuario || !/^\d+$/.test(String(usuario.id))) {
       setLoadingSuggestions(false);
       setSugerencias([]);
       return;
@@ -90,24 +138,36 @@ function Amigos() {
     return <p className="text-sm text-muted-foreground">Registrate para agregar amigos.</p>;
   }
 
-  const misAmigos = api.amigosDeUsuario(db, usuario.id);
-  const misAmigosIds = new Set(misAmigos.map((a) => a.id));
-  const recibidas = api.solicitudesRecibidas(db, usuario.id);
+  const amigosLocales = api.amigosDeUsuario(db, usuario.id);
   const enviadas = api.solicitudesEnviadas(db, usuario.id);
+
+  const listaAmigos = misAmigos.length > 0 ? misAmigos : amigosLocales;
+  const misAmigosIds = new Set(listaAmigos.map((a) => a.id));
   const pendientesIds = new Set([
-    ...recibidas.map((r) => r.usuario.id),
+    ...recibidasBackend.map((r) => r.usuario_solicitante || r.usuario?.id),
     ...enviadas.map((r) => r.usuario.id),
   ]);
+
   const usuariosSugeridos = sugerencias.filter(
     (u) => u.id !== usuario.id && !misAmigosIds.has(u.id) && !pendientesIds.has(u.id),
   );
+
+  const handleEnviarSolicitud = async (idTarget: number | string) => {
+    await enviarSolicitud(idTarget);
+    await cargarSolicitudes();
+  };
+
+  const handleResponderSolicitud = async (idSolicitud: number | string, aceptar: boolean) => {
+    await responderSolicitud(idSolicitud, aceptar);
+    await cargarSolicitudes();
+  };
 
   return (
     <div className="space-y-8">
       <header>
         <h1 className="text-3xl">Amigos</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {misAmigos.length} amigos · {recibidas.length} solicitudes recibidas · {enviadas.length}{" "}
+          {listaAmigos.length} amigos · {recibidasBackend.length} solicitudes recibidas · {enviadas.length}{" "}
           enviadas. Una amistad se crea solo cuando la otra persona acepta.
         </p>
       </header>
@@ -141,7 +201,7 @@ function Amigos() {
                     <p className="font-semibold leading-tight">{u.nombre}</p>
                     <p className="text-xs text-muted-foreground">{u.email}</p>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => enviarSolicitud(u.id)}>
+                  <Button size="sm" variant="outline" onClick={() => handleEnviarSolicitud(u.id)}>
                     <UserPlus className="mr-1 size-4" /> Enviar solicitud
                   </Button>
                 </li>
@@ -159,30 +219,37 @@ function Amigos() {
           ¿Querés ser amigo/a de estas personas? Vos decidís.
         </p>
         <ul className="mt-3 card-pop divide-y-2 divide-border">
-          {recibidas.map(({ solicitud, usuario: u }) => (
-            <li key={solicitud.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <span className="grid size-10 place-items-center rounded-2xl bg-accent text-base font-extrabold text-accent-foreground">
-                {u.nombre.charAt(0)}
-              </span>
-              <div className="min-w-32 flex-1">
-                <p className="font-semibold leading-tight">{u.nombre}</p>
-                <p className="text-xs text-muted-foreground">
-                  Te envió una solicitud · {u.xp_total} XP
-                </p>
-              </div>
-              <Button size="sm" onClick={() => responderSolicitud(solicitud.id, true)}>
-                <Check className="mr-1 size-4" /> Aceptar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => responderSolicitud(solicitud.id, false)}
-              >
-                <X className="mr-1 size-4" /> Rechazar
-              </Button>
-            </li>
-          ))}
-          {recibidas.length === 0 ? (
+          {recibidasBackend.map((item) => {
+            const solicitudId = item.id;
+            const uInfo = item.solicitante_info || item.usuario;
+            const nombreSolicitante = uInfo?.nombre || item.solicitante_nombre || `Usuario #${item.usuario_solicitante}`;
+            const xpSolicitante = uInfo?.xp_total ?? item.solicitante_xp ?? 0;
+
+            return (
+              <li key={solicitudId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span className="grid size-10 place-items-center rounded-2xl bg-accent text-base font-extrabold text-accent-foreground">
+                  {nombreSolicitante.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-32 flex-1">
+                  <p className="font-semibold leading-tight">{nombreSolicitante}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Te envió una solicitud · {xpSolicitante} XP
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => handleResponderSolicitud(solicitudId, true)}>
+                  <Check className="mr-1 size-4" /> Aceptar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleResponderSolicitud(solicitudId, false)}
+                >
+                  <X className="mr-1 size-4" /> Rechazar
+                </Button>
+              </li>
+            );
+          })}
+          {recibidasBackend.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted-foreground">No tenés solicitudes nuevas.</li>
           ) : null}
         </ul>
@@ -207,10 +274,10 @@ function Amigos() {
       ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2">
-        {misAmigos.map((a) => (
+        {listaAmigos.map((a) => (
           <article key={a.id} className="card-pop flex items-center gap-4 p-4">
             <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-lg font-extrabold text-secondary-foreground">
-              {a.nombre.charAt(0)}
+              {a.nombre.charAt(0).toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-base leading-tight">
@@ -238,7 +305,7 @@ function Amigos() {
             </Button>
           </article>
         ))}
-        {misAmigos.length === 0 ? (
+        {listaAmigos.length === 0 ? (
           <p className="text-sm text-muted-foreground">Todavía no agregaste a nadie.</p>
         ) : null}
       </section>
@@ -253,15 +320,17 @@ function Amigos() {
             <li className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" /> Cargando sugerencias...
             </li>
-          ) : usuariosSugeridos.map((u) => (
-            <li key={u.id} className="flex items-center gap-4 px-4 py-3">
-              <span className="flex-1 truncate font-semibold">{u.nombre}</span>
-              <span className="text-sm text-muted-foreground">{u.xp_total} XP</span>
-              <Button size="sm" variant="outline" onClick={() => enviarSolicitud(u.id)}>
-                <UserPlus className="mr-1 size-4" /> Enviar solicitud
-              </Button>
-            </li>
-          ))}
+          ) : (
+            usuariosSugeridos.map((u) => (
+              <li key={u.id} className="flex items-center gap-4 px-4 py-3">
+                <span className="flex-1 truncate font-semibold">{u.nombre}</span>
+                <span className="text-sm text-muted-foreground">{u.xp_total} XP</span>
+                <Button size="sm" variant="outline" onClick={() => handleEnviarSolicitud(u.id)}>
+                  <UserPlus className="mr-1 size-4" /> Enviar solicitud
+                </Button>
+              </li>
+            ))
+          )}
           {!loadingSuggestions && usuariosSugeridos.length === 0 ? (
             <li className="px-4 py-3 text-sm text-muted-foreground">
               No hay sugerencias disponibles.

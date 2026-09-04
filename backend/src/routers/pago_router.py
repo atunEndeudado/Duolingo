@@ -34,3 +34,13 @@ async def webhook_mercado_pago(request: Request, service: PagoService = Depends(
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router_pago.post("/activar-manual/{usuario_id}", status_code=status.HTTP_200_OK)
+def activar_premium_manual(usuario_id: int, service: PagoService = Depends(get_pago_service)):
+    try:
+        return service.activar_premium_usuario(usuario_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
